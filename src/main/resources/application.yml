@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: test-management-system-ai
+  profiles:
+    active: dev
