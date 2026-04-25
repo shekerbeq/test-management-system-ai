@@ -11,12 +11,10 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
-
   data:
     redis:
       host: localhost
       port: 6379
-
   security:
     oauth2:
       client:
@@ -27,6 +25,10 @@ spring:
             scope:
               - email
               - profile
+
+jwt:
+  secret: ${JWT_SECRET:qT6Nf9vY2kL8wR5dX1eS3aC7zG0bM4nO}
+  expiration-ms: 900000
 
 logging:
   level:
