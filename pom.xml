@@ -23,11 +23,11 @@
 		<java.version>17</java.version>
 	</properties>
 
-	<!-- Здесь мы объявим модули (пока что их нет, добавим позже) -->
 	<modules>
 		<module>core</module>
 		<module>user-module</module>
 		<module>app</module>
+		<module>ai-generator</module>
 	</modules>
 
 	<!-- Управление версиями зависимостей, чтобы во всех модулях были одинаковые версии -->
