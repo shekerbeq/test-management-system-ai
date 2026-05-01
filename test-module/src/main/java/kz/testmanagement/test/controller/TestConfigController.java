@@ -2,11 +2,10 @@ package kz.testmanagement.test.controller;
 
 import kz.testmanagement.test.entity.TestConfig;
 import kz.testmanagement.test.service.TestConfigService;
+import kz.testmanagement.test.service.TestCreationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,22 +13,24 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tests")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('TEACHER')")
 public class TestConfigController {
 
     private final TestConfigService testConfigService;
+    private final TestCreationService testCreationService;  // <-- добавили
 
     @PostMapping
     public ResponseEntity<TestConfig> createTest(@RequestBody TestConfig config) {
-        // creatorId заполняется отдельно (можно из токена, пока захардкодим)
-        // Пока для простоты оставим как есть, позже доработаем получение из аутентификации
         return ResponseEntity.ok(testConfigService.save(config));
+    }
+
+    @PostMapping("/generate-and-save")   // <-- новый метод
+    public ResponseEntity<TestConfig> generateAndSave(@RequestBody TestConfig config) {
+        return ResponseEntity.ok(testCreationService.createTestWithQuestions(config));
     }
 
     @GetMapping("/my")
     public ResponseEntity<List<TestConfig>> getMyTests() {
-        // Временно возвращаем все тесты. Позже сделаем фильтрацию по создателю.
-        return ResponseEntity.ok(testConfigService.findByCreatorId(1L)); // заглушка
+        return ResponseEntity.ok(testConfigService.findByCreatorId(1L)); // потом поправим
     }
 
     @GetMapping("/{id}")
