@@ -12,11 +12,11 @@ public class QuestionParser {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public List<QuestionDto> parse(String jsonResponse) {
+    public QuestionDto parseSingle(String json) {
         try {
-            return objectMapper.readValue(jsonResponse, new TypeReference<List<QuestionDto>>() {});
+            return objectMapper.readValue(json, QuestionDto.class);
         } catch (Exception e) {
-            throw new RuntimeException("JSON жауапты парсингтеу қатесі: " + e.getMessage(), e);
+            throw new RuntimeException("Жеке сұрақты парсингтеу қатесі: " + e.getMessage(), e);
         }
     }
 }
