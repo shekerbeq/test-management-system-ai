@@ -64,7 +64,12 @@ public class DeepSeekClient implements LlmClient {
             JsonNode choices = root.path("choices");
             if (choices.isArray() && choices.size() > 0) {
                 String content = choices.get(0).path("message").path("content").asText();
-                // Ожидаем JSON-массив в content, парсим его
+                // Убираем markdown-разметку, если ответ обёрнут в ```json ... ```
+                content = content.trim();
+                if (content.startsWith("```")) {
+                    content = content.replaceAll("```json\\s*", "").replaceAll("\\s*```$", "");
+                }
+                // Парсим очищенный JSON
                 JsonNode questions = objectMapper.readTree(content);
                 List<String> result = new ArrayList<>();
                 if (questions.isArray()) {
@@ -77,6 +82,6 @@ public class DeepSeekClient implements LlmClient {
         } catch (Exception e) {
             System.err.println("Жауапты өңдеу қатесі: " + e.getMessage());
         }
-        return List.of();
+        return List.of();   // fallback
     }
 }
