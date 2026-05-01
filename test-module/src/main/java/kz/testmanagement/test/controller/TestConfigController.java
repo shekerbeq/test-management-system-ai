@@ -13,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tests")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('TEACHER')")
 public class TestConfigController {
 
     private final TestConfigService testConfigService;
