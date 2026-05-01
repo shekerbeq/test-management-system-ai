@@ -1,6 +1,7 @@
 package kz.testmanagement.test.controller;
 
 import kz.testmanagement.test.entity.TestConfig;
+import kz.testmanagement.test.service.AnalyticsService;
 import kz.testmanagement.test.service.TestConfigService;
 import kz.testmanagement.test.service.TestCreationService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tests")
@@ -17,21 +19,22 @@ import java.util.List;
 public class TestConfigController {
 
     private final TestConfigService testConfigService;
-    private final TestCreationService testCreationService;  // <-- добавили
+    private final TestCreationService testCreationService;
+    private final AnalyticsService analyticsService; // ← добавил
 
     @PostMapping
     public ResponseEntity<TestConfig> createTest(@RequestBody TestConfig config) {
         return ResponseEntity.ok(testConfigService.save(config));
     }
 
-    @PostMapping("/generate-and-save")   // <-- новый метод
+    @PostMapping("/generate-and-save")
     public ResponseEntity<TestConfig> generateAndSave(@RequestBody TestConfig config) {
         return ResponseEntity.ok(testCreationService.createTestWithQuestions(config));
     }
 
     @GetMapping("/my")
     public ResponseEntity<List<TestConfig>> getMyTests() {
-        return ResponseEntity.ok(testConfigService.findByCreatorId(1L)); // потом поправим
+        return ResponseEntity.ok(testConfigService.findByCreatorId(1L));
     }
 
     @GetMapping("/{id}")
@@ -39,6 +42,12 @@ public class TestConfigController {
         return testConfigService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/statistics")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<Map<String, Object>> getStatistics(@PathVariable Long id) {
+        return ResponseEntity.ok(analyticsService.getTestStatistics(id));
     }
 
     @PutMapping("/{id}")
