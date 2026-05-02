@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Мои тесты</title>
+</head>
+<body>
+<h1>Мои тесты</h1>
+<table id="testTable">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Название</th>
+        <th>Тема</th>
+        <th>Действия</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<script>
+    const token = localStorage.getItem('jwt');
+    if (!token) {
+        window.location.href = '/login';
+    }
+    async function loadTests() {
+        const response = await fetch('/api/tests/my', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.ok) {
+            const tests = await response.json();
+            const tbody = document.querySelector('#testTable tbody');
+            tests.forEach(test => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = test.id;
+                row.insertCell().textContent = test.title;
+                row.insertCell().textContent = test.topic;
+                const actionsCell = row.insertCell();
+                actionsCell.innerHTML = `<a href="/tests/${test.id}/session">Пройти</a> |
+                                            <a href="/tests/${test.id}/statistics">Статистика</a>`;
+            });
+        }
+    }
+    loadTests();
+</script>
+</body>
+</html>

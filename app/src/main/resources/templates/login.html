@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<h1>Вход</h1>
+<div>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+</div>
+<script>
+    async function login() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const response = await fetch('/api/auth/login?email=' + encodeURIComponent(email) + '&password=' + encodeURIComponent(password), { method: 'POST' });
+        if (response.ok) {
+            const token = await response.text();
+            localStorage.setItem('jwt', token);
+            window.location.href = '/tests';
+        } else {
+            alert('Ошибка входа');
+        }
+    }
+</script>
+</body>
+</html>

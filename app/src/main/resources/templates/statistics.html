@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Статистика теста</title>
+</head>
+<body>
+<h1>Статистика теста</h1>
+<pre id="stats"></pre>
+<script>
+    const token = localStorage.getItem('jwt');
+    const testId = window.location.pathname.split('/')[2];
+
+    async function loadStatistics() {
+        const response = await fetch(`/api/tests/${testId}/statistics`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await response.json();
+        document.getElementById('stats').textContent = JSON.stringify(data, null, 2);
+    }
+    loadStatistics();
+</script>
+</body>
+</html>

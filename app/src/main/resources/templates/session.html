@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Прохождение теста</title>
+</head>
+<body>
+<h1>Прохождение теста</h1>
+<div id="questions"></div>
+<button onclick="submitAnswers()">Завершить тест</button>
+<script>
+    const token = localStorage.getItem('jwt');
+    const testId = window.location.pathname.split('/')[2];
+    const studentId = 1; // временно, потом заменим
+
+    async function loadSession() {
+        const response = await fetch(`/api/tests/${testId}/start?studentId=${studentId}`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const session = await response.json();
+        const questionsResp = await fetch(`/api/tests/sessions/${session.id}/answers`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const answers = await questionsResp.json();
+        // и т.д. – для простоты пока опустим
+    }
+    loadSession();
+</script>
+</body>
+</html>
