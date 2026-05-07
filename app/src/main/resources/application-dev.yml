@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/tms_db
+    url: jdbc:postgresql://localhost:5433/tms_db
     username: tms_user
     password: 123456
   jpa:
