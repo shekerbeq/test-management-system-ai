@@ -31,12 +31,15 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/login",               // страница входа
-                                "/css/**",              // статика (если понадобится)
-                                "/js/**"                // статика
+                                "/login",
+                                "/css/**",
+                                "/js/**",
+                                "/**.html",
+                                "/**.css",
+                                "/**.js"
                         ).permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
