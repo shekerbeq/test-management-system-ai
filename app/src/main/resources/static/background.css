@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css?family=Gruppo');
+
+/* Стили самого фона */
+.bg-animation {
+    position: fixed; /* Чтобы фон не прокручивался */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Оправляем на самый задний план */
+    overflow: hidden;
+}
+
+.bg-animation > div {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    will-change: opacity;
+}
+
+.bg-1 {
+    background: linear-gradient(180deg, #f9dea1 60%, #9bdaff 100%);
+}
+
+.bg-2 {
+    background: linear-gradient(300deg, #f9c3f5 60%, #9bdaff 100%);
+    animation: bg-fade-1 6s linear infinite;
+}
+
+.bg-3 {
+    background: linear-gradient(10deg, #bab2fc 60%, #9bdaff 100%);
+    animation: bg-fade-2 6s linear infinite;
+}
+
+@keyframes bg-fade-1 {
+    0% { opacity: 1; }
+    33% { opacity: 1; }
+    66% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+@keyframes bg-fade-2 {
+    0% { opacity: 1; }
+    33% { opacity: 0; }
+    66% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* Если вы хотите использовать шрифт Gruppo и белый цвет текста как в примере: */
+/* Внимание: это может изменить вид текста на ваших страницах */
+.use-bg-font {
+    font-family: 'Gruppo', cursive;
+    color: #fff;
+}

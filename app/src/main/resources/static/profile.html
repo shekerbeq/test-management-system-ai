@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мой профиль — Eduvibe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header id="global-header"></header>
+
+    <div class="container animate-fade-up" style="max-width: 600px;">
+        <div class="card">
+            <h2>Профиль пользователя</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Управление личными данными</p>
+
+            <form id="profileForm">
+                <label>Ваше имя</label>
+                <input type="text" id="profName" required>
+
+                <label>Email (нельзя изменить)</label>
+                <input type="email" id="profEmail" disabled style="background-color: #E2E8F0; cursor: not-allowed;">
+
+                <label>Новый пароль</label>
+                <input type="password" id="profPass" placeholder="Введите новый пароль, если хотите изменить его">
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) window.location.href = 'login.html';
+
+        document.getElementById('profName').value = user.name;
+        document.getElementById('profEmail').value = user.email;
+
+        document.getElementById('profileForm').onsubmit = (e) => {
+            e.preventDefault();
+            const newName = document.getElementById('profName').value;
+            const newPass = document.getElementById('profPass').value;
+
+            // Обновляем в локальной базе
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const idx = users.findIndex(u => u.email === user.email);
+            if (idx !== -1) {
+                users[idx].name = newName;
+                if (newPass) users[idx].password = newPass;
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                user.name = newName;
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+
+            showToast("Профиль успешно обновлен!");
+            setTimeout(() => window.location.reload(), 1000);
+        };
+    </script>
+</body>
+</html>

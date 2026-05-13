@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Создание теста — Eduvibe</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .loader {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--primary);
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <header id="global-header"></header>
+
+    <div class="container animate-fade-up" style="max-width: 800px;">
+        <div class="card">
+            <h2>Новый тест</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Настройте базовые параметры и сгенерируйте вопросы</p>
+
+            <form id="createForm">
+                <label>Название теста</label>
+                <input type="text" id="title" placeholder="например, Основы веб-дизайна" required>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label>Сложность</label>
+                        <select id="difficulty">
+                            <option value="Легкий">Легкий</option>
+                            <option value="Средний" selected>Средний</option>
+                            <option value="Сложный">Сложный</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Лимит времени (минут)</label>
+                        <input type="number" id="timer" value="15" min="1" required>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 10px; margin-bottom: 35px;">
+                    <button type="button" class="btn btn-secondary" onclick="generateAIQuestions()" style="flex-grow: 1;">✨ ИИ-генерация вопросов</button>
+                </div>
+
+                <div class="loader" id="loader"></div>
+
+                <div id="questionsArea" style="margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px;">Список вопросов</h3>
+                    <div id="questionsContainer"></div>
+                    <button type="button" class="btn btn-outline" onclick="addQuestionField()" style="margin-top: 15px;">+ Добавить вопрос вручную</button>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 40px; justify-content: center;">Создать и сохранить тест</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let questions = [];
+
+        function addQuestionField(qText = '', answers = ['', '', ''], correct = 0) {
+            const container = document.getElementById('questionsContainer');
+            const id = 'q_' + Date.now() + Math.random().toString(36).substring(2, 5);
+
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.style.background = '#F8FAFC';
+            div.style.marginBottom = '20px';
+            div.id = id;
+
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4>Вопрос</h4>
+                    <button type="button" onclick="document.getElementById('${id}').remove()" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Удалить</button>
+                </div>
+                <input type="text" class="q-text" placeholder="Формулировка вопроса" value="${qText}" required>
+                
+                <label>Варианты ответов (отметьте точкой правильный):</label>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="correct_${id}" value="0" ${correct === 0 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
+                        <input type="text" class="q-ans" value="${answers[0]}" placeholder="Вариант 1" required style="margin-bottom:0;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="correct_${id}" value="1" ${correct === 1 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
+                        <input type="text" class="q-ans" value="${answers[1]}" placeholder="Вариант 2" required style="margin-bottom:0;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="correct_${id}" value="2" ${correct === 2 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
+                        <input type="text" class="q-ans" value="${answers[2]}" placeholder="Вариант 3" required style="margin-bottom:0;">
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function generateAIQuestions() {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+            setTimeout(() => {
+                loader.style.display = 'none';
+                addQuestionField('С какой целью используется локальное хранилище localStorage?', ['Для кэширования медиафайлов', 'Для хранения строковых пар ключ-значение без срока давности', 'Для отправки зашифрованных куки на сервер'], 1);
+                addQuestionField('Какой метод переводит объект JS в строку JSON?', ['JSON.parse()', 'JSON.stringify()', 'JSON.toString()'], 1);
+                showToast("Вопросы сгенерированы искусственным интеллектом!");
+            }, 1500);
+        }
+
+        document.getElementById('createForm').onsubmit = (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const timer = document.getElementById('timer').value;
+            const author = JSON.parse(localStorage.getItem('user')).email;
+
+            const qCards = document.querySelectorAll('#questionsContainer > div');
+            const savedQuestions = [];
+
+            qCards.forEach(card => {
+                const qText = card.querySelector('.q-text').value;
+                const qAnsElements = card.querySelectorAll('.q-ans');
+                const answers = Array.from(qAnsElements).map(el => el.value);
+                const correct = parseInt(card.querySelector(`input[type="radio"]:checked`).value);
+
+                savedQuestions.push({ q: qText, answers, correct });
+            });
+
+            if (savedQuestions.length === 0) {
+                showToast("Добавьте хотя бы один вопрос", "error");
+                return;
+            }
+
+            const tests = JSON.parse(localStorage.getItem('tests')) || [];
+            tests.push({
+                id: 't' + Date.now(),
+                title,
+                timer: parseInt(timer),
+                questions: savedQuestions,
+                author
+            });
+            localStorage.setItem('tests', JSON.stringify(tests));
+
+            showToast("Тест успешно создан!");
+            setTimeout(() => window.location.href = 'tests.html', 1500);
+        };
+    </script>
+    <div class="bg-animation">
+        <div class="bg-1"></div>
+        <div class="bg-2"></div>
+        <div class="bg-3"></div>
+    </div>
+
+    <header>...</header>
+    <div class="container">
+       <div class="card animate-fade-up">...</div>
+    </div>
+</body>
+</html>
