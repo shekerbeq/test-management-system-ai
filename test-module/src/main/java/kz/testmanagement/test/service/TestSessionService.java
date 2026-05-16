@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -70,7 +71,7 @@ public class TestSessionService {
 
         for (UserAnswer answer : answers) {
             Question question = answer.getQuestion();
-            if (question.getCorrectIndex() == answer.getSelectedIndex()) {
+            if (!question.isOpenQuestion() && Objects.equals(question.getCorrectIndex(), answer.getSelectedIndex())) {
                 answer.setIsCorrect(true);
                 correctCount++;
             } else {

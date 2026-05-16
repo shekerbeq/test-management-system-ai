@@ -50,10 +50,20 @@ public class TestCreationService {
                     .text(dto.getQuestion())
                     .optionsJson(optionsJson)
                     .correctIndex(dto.getCorrect())
+                    .correctIndicesJson(writeList(dto.getCorrectIndices()))
+                    .openQuestion(dto.isOpen())
                     .build();
             questionRepository.save(q);
         }
 
         return saved;
+    }
+
+    private String writeList(List<Integer> values) {
+        try {
+            return objectMapper.writeValueAsString(values == null ? List.of() : values);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
     }
 }

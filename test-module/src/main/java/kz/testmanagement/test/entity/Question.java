@@ -23,5 +23,12 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private String optionsJson;   // храним варианты ответов как JSON строку
 
-    private int correctIndex;
+    private Integer correctIndex;
+
+    @Column(columnDefinition = "TEXT")
+    private String correctIndicesJson;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean openQuestion = false;
 }

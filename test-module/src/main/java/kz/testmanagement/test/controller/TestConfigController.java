@@ -98,7 +98,7 @@ public class TestConfigController {
         List<QuestionDto> dtos = questions.stream()
                 .map(q -> {
                     List<String> options = parseOptions(q.getOptionsJson());
-                    return new QuestionDto(q.getText(), options, q.getCorrectIndex());
+                    return new QuestionDto(q.getText(), options, parseCorrectIndices(q), q.getCorrectIndex(), q.isOpenQuestion());
                 })
                 .toList();
         return ResponseEntity.ok(dtos);
@@ -110,5 +110,16 @@ public class TestConfigController {
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    private List<Integer> parseCorrectIndices(Question question) {
+        if (question.getCorrectIndicesJson() != null) {
+            try {
+                return objectMapper.readValue(question.getCorrectIndicesJson(), new TypeReference<List<Integer>>() {});
+            } catch (Exception ignored) {
+                // use legacy single correct index below
+            }
+        }
+        return question.getCorrectIndex() == null ? List.of() : List.of(question.getCorrectIndex());
     }
 }

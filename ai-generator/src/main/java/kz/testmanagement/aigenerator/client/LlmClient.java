@@ -1,7 +1,8 @@
 package kz.testmanagement.aigenerator.client;
 
+import kz.testmanagement.core.dto.QuestionDto;
 import java.util.List;
 
 public interface LlmClient {
-    List<String> generateQuestions(String prompt);
+    List<QuestionDto> generateQuestions(String prompt);
 }

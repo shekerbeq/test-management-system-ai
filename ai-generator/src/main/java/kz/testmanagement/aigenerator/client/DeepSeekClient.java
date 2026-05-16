@@ -2,19 +2,23 @@ package kz.testmanagement.aigenerator.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kz.testmanagement.aigenerator.parser.QuestionParser;
+import kz.testmanagement.core.dto.QuestionDto;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 @Component
+@ConditionalOnProperty(name = "llm.provider", havingValue = "deepseek")
 public class DeepSeekClient implements LlmClient {
 
     private final WebClient webClient;
+    private final QuestionParser questionParser;
     private final String apiKey;
     private final String model;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -22,66 +26,55 @@ public class DeepSeekClient implements LlmClient {
     public DeepSeekClient(WebClient.Builder webClientBuilder,
                           @Value("${deepseek.api-key}") String apiKey,
                           @Value("${deepseek.model}") String model,
-                          @Value("${deepseek.url}") String url) {
-        this.webClient = webClientBuilder.baseUrl(url).build();
+                          @Value("${deepseek.url}") String url,
+                          QuestionParser questionParser) {
+        this.webClient = webClientBuilder.baseUrl(url)
+                .defaultHeader("Authorization", "Bearer " + apiKey)
+                .build();
         this.apiKey = apiKey;
         this.model = model;
+        this.questionParser = questionParser;
     }
 
     @Override
-    public List<String> generateQuestions(String prompt) {
+    public List<QuestionDto> generateQuestions(String prompt) {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
                 "messages", List.of(
-                        Map.of("role", "system", "content", "Ты помогаешь генерировать тестовые вопросы."),
+                        Map.of("role", "system", "content", "Ты — эксперт по генерации тестов. Всегда отвечай только валидным JSON."),
                         Map.of("role", "user", "content", prompt)
                 ),
                 "temperature", 0.7
         );
 
         String response = webClient.post()
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(15))
                 .onErrorResume(e -> {
-                    System.err.println("DeepSeek API қатесі: " + e.getMessage());
-                    return Mono.just("");
+                    System.err.println("DeepSeek API ошибка: " + e.getMessage());
+                    return Mono.just(""); // fallback
                 })
                 .block();
 
-        if (response == null || response.isEmpty()) {
-            return List.of();   // fallback – пустой список
+        if (response == null || response.isBlank()) {
+            return List.of(); // пустой список вместо null
         }
 
-        return extractQuestionsFromResponse(response);
+        return questionParser.parseQuestions(extractAssistantContent(response));
     }
 
-    private List<String> extractQuestionsFromResponse(String jsonResponse) {
+    private String extractAssistantContent(String response) {
         try {
-            JsonNode root = objectMapper.readTree(jsonResponse);
+            JsonNode root = objectMapper.readTree(response);
             JsonNode choices = root.path("choices");
-            if (choices.isArray() && choices.size() > 0) {
-                String content = choices.get(0).path("message").path("content").asText();
-                // Убираем markdown-разметку, если ответ обёрнут в ```json ... ```
-                content = content.trim();
-                if (content.startsWith("```")) {
-                    content = content.replaceAll("```json\\s*", "").replaceAll("\\s*```$", "");
-                }
-                // Парсим очищенный JSON
-                JsonNode questions = objectMapper.readTree(content);
-                List<String> result = new ArrayList<>();
-                if (questions.isArray()) {
-                    for (JsonNode q : questions) {
-                        result.add(objectMapper.writeValueAsString(q));
-                    }
-                }
-                return result;
+            if (choices.isArray() && !choices.isEmpty()) {
+                return choices.get(0).path("message").path("content").asText(response);
             }
-        } catch (Exception e) {
-            System.err.println("Жауапты өңдеу қатесі: " + e.getMessage());
+        } catch (Exception ignored) {
+            return response;
         }
-        return List.of();   // fallback
+        return response;
     }
 }
