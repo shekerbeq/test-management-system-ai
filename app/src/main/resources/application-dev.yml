@@ -29,6 +29,8 @@ spring:
 jwt:
   secret: ${JWT_SECRET:qT6Nf9vY2kL8wR5dX1eS3aC7zG0bM4nO+0dF1gH2iJ3kL4mN5oP6qR7sT8uV9wX0yZ1aB2cD3eF4gH5iJ6kL7}
   expiration-ms: 900000
+llm:
+  provider: ${LLM_PROVIDER:mock}
 deepseek:
   api-key: ${DEEPSEEK_API_KEY:sk-your-deepseek-key}
   model: ${DEEPSEEK_MODEL:deepseek-chat}

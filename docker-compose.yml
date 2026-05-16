@@ -23,6 +23,16 @@ services:
       - redis-data:/data
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tms-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   redis-data:
+  ollama-data:
