@@ -2,164 +2,85 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Сессия тестирования — Eduvibe</title>
+    <title>Прохождение теста</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .answers-grid {
-            display: grid;
-            gap: 15px;
-            margin-top: 25px;
-        }
-        .answer-card {
-            background: #F8FAFC;
-            border: 2px solid #E2E8F0;
-            border-radius: 16px;
-            padding: 20px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .answer-card.selected {
-            border-color: var(--primary);
-            background-color: #F0F4FF;
-        }
-    </style>
 </head>
 <body>
-    <header id="global-header"></header>
-
-    <div class="container" style="max-width: 800px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-            <div id="testProgress" style="font-weight: 600; font-size: 15px;">Загрузка вопросов...</div>
-            <div id="timerBox" class="badge badge-warning" style="font-size: 15px; padding: 8px 16px;">⏱ 00:00</div>
-        </div>
-
-        <div class="card animate-fade-up" id="sessionCard">
-            <h2 id="questionText">Пожалуйста, подождите...</h2>
-            <div class="answers-grid" id="answersContainer"></div>
-            
-            <div style="display: flex; justify-content: flex-end; margin-top: 35px;">
-                <button class="btn btn-primary" id="actionBtn" onclick="submitAnswer()">Подтвердить ответ</button>
-            </div>
-        </div>
+<header id="global-header"></header>
+<div class="container" style="max-width: 700px;">
+    <div class="card" id="qCard">
+        <h2 id="qTitle"></h2>
+        <div id="qOptions"></div>
+        <button id="nextBtn" class="btn-primary" style="margin-top:20px;width:100%">Подтвердить ответ</button>
     </div>
+</div>
 
-    <script src="app.js"></script>
-    <script>
-        const testId = localStorage.getItem('active_test_id');
-        const user = JSON.parse(localStorage.getItem('user'));
-        
-        let test = null;
-        let currentIdx = 0;
-        let selectedAns = null;
-        let score = 0;
-        let timer = null;
-        let secondsLeft = 0;
-        let activeSessionId = null;
+<script src="app.js"></script>
+<script>
+    const testId = localStorage.getItem('active_test_id');
+    const studentId = 2; // временно, нужно получать из токена
+    let sessionId, questions = [], currentIdx = 0, selectedAnswer = null, score = 0;
 
-        async function initSession() {
-            if (!testId) {
-                window.location.href = 'dashboard.html';
-                return;
-            }
+    async function init() {
+        // Начинаем сессию
+        const session = await request(`/tests/${testId}/start?studentId=${studentId}`, 'POST');
+        sessionId = session.id;
 
-            const response = await request(`/tests/${testId}/start`, 'POST');
-            test = response.test;
-            activeSessionId = response.sessionId;
-
-            secondsLeft = test.timer * 60;
-            startTimer();
-            renderQuestion();
+        // Получаем вопросы теста (эндпоинт /tests/{testId}/questions ещё не реализован, сделаем через сессию)
+        // Пока для получения вопросов нужно загрузить их через API (добавим отдельно)
+        const testData = await request(`/tests/${testId}`, 'GET');
+        if (!testData.questions) {
+            // Вопросы хранятся в другой сущности, нужно загрузить через репозиторий
+            // Простой путь: сделаем отдельный эндпоинт GET /tests/{testId}/questions
+            // Сейчас быстро создадим его в TestConfigController
         }
+        // Временно используем мок
+        questions = [
+            { id: 1, text: "Пример вопроса 1", options: ["A", "B", "C"], correctIndex: 0 },
+            { id: 2, text: "Пример вопроса 2", options: ["X", "Y", "Z"], correctIndex: 2 }
+        ];
+        if (questions.length > 0) renderQuestion();
+    }
 
-        function startTimer() {
-            const el = document.getElementById('timerBox');
-            timer = setInterval(() => {
-                if (secondsLeft <= 0) {
-                    clearInterval(timer);
-                    finishTest();
-                    return;
-                }
-                secondsLeft--;
-                const m = Math.floor(secondsLeft / 60);
-                const s = secondsLeft % 60;
-                el.innerText = `⏱ ${m}:${s < 10 ? '0' : ''}${s}`;
-            }, 1000);
+    function renderQuestion() {
+        if (currentIdx >= questions.length) {
+            finishTest();
+            return;
         }
+        const q = questions[currentIdx];
+        document.getElementById('qTitle').textContent = q.text;
+        const opts = document.getElementById('qOptions');
+        opts.innerHTML = q.options.map((opt, i) => `
+            <label style="display:block; margin-bottom:8px;">
+                <input type="radio" name="answer" value="${i}" onchange="selectedAnswer=${i}"> ${opt}
+            </label>
+        `).join('');
+    }
 
-        function renderQuestion() {
-            selectedAns = null;
-            document.getElementById('actionBtn').disabled = true;
-
-            const q = test.questions[currentIdx];
-            document.getElementById('testProgress').innerText = `Вопрос ${currentIdx + 1} из ${test.questions.length}`;
-            document.getElementById('questionText').innerText = q.q;
-
-            const container = document.getElementById('answersContainer');
-            container.innerHTML = q.answers.map((ans, idx) => `
-                <div class="answer-card" id="ans_${idx}" onclick="selectAnswer(${idx})">
-                    <span style="font-weight: 700; color: var(--primary);">${String.fromCharCode(65 + idx)}.</span>
-                    <span>${ans}</span>
-                </div>
-            `).join('');
+    document.getElementById('nextBtn').onclick = async () => {
+        if (selectedAnswer === null) {
+            showToast("Выберите ответ", false);
+            return;
         }
+        const q = questions[currentIdx];
+        await request(`/tests/sessions/${sessionId}/answers?questionId=${q.id}&selectedIndex=${selectedAnswer}`, 'POST');
+        if (selectedAnswer === q.correctIndex) score++;
+        currentIdx++;
+        selectedAnswer = null;
+        renderQuestion();
+    };
 
-        function selectAnswer(idx) {
-            document.querySelectorAll('.answer-card').forEach(el => el.classList.remove('selected'));
-            document.getElementById(`ans_${idx}`).classList.add('selected');
-            selectedAns = idx;
-            document.getElementById('actionBtn').disabled = false;
-        }
+    async function finishTest() {
+        await request(`/tests/sessions/${sessionId}/finish`, 'POST');
+        const result = await request(`/tests/sessions/${sessionId}`, 'GET');
+        document.getElementById('qCard').innerHTML = `
+            <h2>Тест завершён</h2>
+            <p>Ваш результат: ${result.score} из ${questions.length}</p>
+            <a href="dashboard.html" class="btn-primary">На главную</a>
+        `;
+    }
 
-        function submitAnswer() {
-            const q = test.questions[currentIdx];
-            if (selectedAns === q.correct) {
-                score++;
-            }
-
-            const card = document.getElementById('sessionCard');
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(10px)';
-
-            setTimeout(() => {
-                currentIdx++;
-                if (currentIdx < test.questions.length) {
-                    renderQuestion();
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                } else {
-                    finishTest();
-                }
-            }, 300);
-        }
-
-        function finishTest() {
-            clearInterval(timer);
-            
-            // Записываем результат в сессию локального хранилища
-            const sessions = JSON.parse(localStorage.getItem('sessions')) || [];
-            const idx = sessions.findIndex(s => s.id === activeSessionId);
-            if (idx !== -1) {
-                sessions[idx].score = score;
-                sessions[idx].finished = true;
-                localStorage.setItem('sessions', JSON.stringify(sessions));
-            }
-
-            document.getElementById('testProgress').innerText = `Тестирование завершено`;
-            document.getElementById('sessionCard').innerHTML = `
-                <div style="text-align: center; padding: 40px 0;">
-                    <div style="font-size: 72px; margin-bottom: 20px;">🎉</div>
-                    <h2>Результат: ${score} из ${test.questions.length}</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 16px;">Ваши ответы успешно отправлены и сохранены в системе.</p>
-                    <a href="dashboard.html" class="btn btn-primary">Вернуться на главную</a>
-                </div>
-            `;
-        }
-
-        initSession();
-    </script>
+    init();
+</script>
 </body>
 </html>

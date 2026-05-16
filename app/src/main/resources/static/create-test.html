@@ -19,146 +19,140 @@
     </style>
 </head>
 <body>
-    <header id="global-header"></header>
+<header id="global-header"></header>
 
-    <div class="container animate-fade-up" style="max-width: 800px;">
-        <div class="card">
-            <h2>Новый тест</h2>
-            <p style="color: var(--text-muted); margin-bottom: 30px;">Настройте базовые параметры и сгенерируйте вопросы</p>
+<div class="container animate-fade-up" style="max-width: 800px;">
+    <div class="card">
+        <h2>Новый тест</h2>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">Настройте параметры и добавьте вопросы</p>
 
-            <form id="createForm">
-                <label>Название теста</label>
-                <input type="text" id="title" placeholder="например, Основы веб-дизайна" required>
+        <form id="createForm">
+            <label>Название теста</label>
+            <input type="text" id="title" placeholder="например, Основы Java" required>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div>
-                        <label>Сложность</label>
-                        <select id="difficulty">
-                            <option value="Легкий">Легкий</option>
-                            <option value="Средний" selected>Средний</option>
-                            <option value="Сложный">Сложный</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Лимит времени (минут)</label>
-                        <input type="number" id="timer" value="15" min="1" required>
-                    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label>Сложность</label>
+                    <select id="difficulty">
+                        <option value="Easy">Легкий</option>
+                        <option value="Medium" selected>Средний</option>
+                        <option value="Hard">Сложный</option>
+                    </select>
                 </div>
-
-                <div style="display: flex; gap: 15px; margin-top: 10px; margin-bottom: 35px;">
-                    <button type="button" class="btn btn-secondary" onclick="generateAIQuestions()" style="flex-grow: 1;">✨ ИИ-генерация вопросов</button>
+                <div>
+                    <label>Лимит времени (минут)</label>
+                    <input type="number" id="timer" value="15" min="1" required>
                 </div>
+            </div>
 
-                <div class="loader" id="loader"></div>
+            <div style="display: flex; gap: 15px; margin-top: 15px; margin-bottom: 30px;">
+                <button type="button" class="btn btn-secondary" onclick="generateAIQuestions()" style="flex-grow: 1;">✨ Сгенерировать ИИ</button>
+                <button type="button" class="btn btn-outline" onclick="addQuestionField()">+ Добавить вручную</button>
+            </div>
 
-                <div id="questionsArea" style="margin-top: 20px;">
-                    <h3 style="margin-bottom: 15px;">Список вопросов</h3>
-                    <div id="questionsContainer"></div>
-                    <button type="button" class="btn btn-outline" onclick="addQuestionField()" style="margin-top: 15px;">+ Добавить вопрос вручную</button>
-                </div>
+            <div class="loader" id="loader"></div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 40px; justify-content: center;">Создать и сохранить тест</button>
-            </form>
-        </div>
+            <div id="questionsArea" style="margin-top: 20px;">
+                <h3>Вопросы</h3>
+                <div id="questionsContainer"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 40px; justify-content: center;">Сохранить тест</button>
+        </form>
     </div>
+</div>
 
-    <script src="app.js"></script>
-    <script>
-        let questions = [];
+<script src="app.js"></script>
+<script>
+    function addQuestionField(qText = '', answers = ['', '', ''], correct = 0) {
+        const container = document.getElementById('questionsContainer');
+        const id = 'q_' + Date.now() + Math.random().toString(36).substring(2, 5);
 
-        function addQuestionField(qText = '', answers = ['', '', ''], correct = 0) {
-            const container = document.getElementById('questionsContainer');
-            const id = 'q_' + Date.now() + Math.random().toString(36).substring(2, 5);
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.background = '#F8FAFC';
+        div.style.marginBottom = '20px';
+        div.id = id;
 
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.style.background = '#F8FAFC';
-            div.style.marginBottom = '20px';
-            div.id = id;
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4>Вопрос</h4>
+                <button type="button" onclick="document.getElementById('${id}').remove()" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Удалить</button>
+            </div>
+            <input type="text" class="q-text" placeholder="Формулировка вопроса" value="${qText}" required>
 
-            div.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4>Вопрос</h4>
-                    <button type="button" onclick="document.getElementById('${id}').remove()" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Удалить</button>
+            <label style="margin-top: 15px;">Варианты ответов (отметьте правильный):</label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="radio" name="correct_${id}" value="0" ${correct === 0 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
+                    <input type="text" class="q-ans" value="${answers[0]}" placeholder="Вариант 1" required style="margin-bottom:0;">
                 </div>
-                <input type="text" class="q-text" placeholder="Формулировка вопроса" value="${qText}" required>
-                
-                <label>Варианты ответов (отметьте точкой правильный):</label>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="radio" name="correct_${id}" value="0" ${correct === 0 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
-                        <input type="text" class="q-ans" value="${answers[0]}" placeholder="Вариант 1" required style="margin-bottom:0;">
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="radio" name="correct_${id}" value="1" ${correct === 1 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
-                        <input type="text" class="q-ans" value="${answers[1]}" placeholder="Вариант 2" required style="margin-bottom:0;">
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="radio" name="correct_${id}" value="2" ${correct === 2 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
-                        <input type="text" class="q-ans" value="${answers[2]}" placeholder="Вариант 3" required style="margin-bottom:0;">
-                    </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="radio" name="correct_${id}" value="1" ${correct === 1 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
+                    <input type="text" class="q-ans" value="${answers[1]}" placeholder="Вариант 2" required style="margin-bottom:0;">
                 </div>
-            `;
-            container.appendChild(div);
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="radio" name="correct_${id}" value="2" ${correct === 2 ? 'checked' : ''} style="width: auto; margin-bottom:0;">
+                    <input type="text" class="q-ans" value="${answers[2]}" placeholder="Вариант 3" required style="margin-bottom:0;">
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    async function generateAIQuestions() {
+        const loader = document.getElementById('loader');
+        loader.style.display = 'block';
+        try {
+            const title = document.getElementById('title').value || 'Тест';
+            const difficulty = document.getElementById('difficulty').value;
+            const generated = await request(`/tests/generate?topic=${encodeURIComponent(title)}&difficulty=${difficulty}&questionType=Multiple&language=ru&count=3`, 'POST');
+            generated.forEach(q => addQuestionField(q.question, q.options, q.correct));
+            showToast("Вопросы сгенерированы ИИ!");
+        } catch (e) {
+            showToast("Ошибка генерации: " + e.message, false);
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    document.getElementById('createForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('title').value;
+        const difficulty = document.getElementById('difficulty').value;
+        const timer = parseInt(document.getElementById('timer').value);
+
+        const qCards = document.querySelectorAll('#questionsContainer > div');
+        const questions = [];
+        qCards.forEach(card => {
+            const qText = card.querySelector('.q-text').value;
+            const answers = Array.from(card.querySelectorAll('.q-ans')).map(el => el.value);
+            const correct = parseInt(card.querySelector(`input[type="radio"]:checked`).value);
+            questions.push({ question: qText, options: answers, correct });
+        });
+
+        if (questions.length === 0) {
+            showToast("Добавьте хотя бы один вопрос", false);
+            return;
         }
 
-        function generateAIQuestions() {
-            const loader = document.getElementById('loader');
-            loader.style.display = 'block';
-            setTimeout(() => {
-                loader.style.display = 'none';
-                addQuestionField('С какой целью используется локальное хранилище localStorage?', ['Для кэширования медиафайлов', 'Для хранения строковых пар ключ-значение без срока давности', 'Для отправки зашифрованных куки на сервер'], 1);
-                addQuestionField('Какой метод переводит объект JS в строку JSON?', ['JSON.parse()', 'JSON.stringify()', 'JSON.toString()'], 1);
-                showToast("Вопросы сгенерированы искусственным интеллектом!");
-            }, 1500);
-        }
-
-        document.getElementById('createForm').onsubmit = (e) => {
-            e.preventDefault();
-            const title = document.getElementById('title').value;
-            const timer = document.getElementById('timer').value;
-            const author = JSON.parse(localStorage.getItem('user')).email;
-
-            const qCards = document.querySelectorAll('#questionsContainer > div');
-            const savedQuestions = [];
-
-            qCards.forEach(card => {
-                const qText = card.querySelector('.q-text').value;
-                const qAnsElements = card.querySelectorAll('.q-ans');
-                const answers = Array.from(qAnsElements).map(el => el.value);
-                const correct = parseInt(card.querySelector(`input[type="radio"]:checked`).value);
-
-                savedQuestions.push({ q: qText, answers, correct });
-            });
-
-            if (savedQuestions.length === 0) {
-                showToast("Добавьте хотя бы один вопрос", "error");
-                return;
-            }
-
-            const tests = JSON.parse(localStorage.getItem('tests')) || [];
-            tests.push({
-                id: 't' + Date.now(),
+        try {
+            await request('/tests/generate-and-save', 'POST', {
                 title,
-                timer: parseInt(timer),
-                questions: savedQuestions,
-                author
+                topic: title,
+                difficulty,
+                questionType: 'Multiple',
+                count: questions.length,
+                timerMin: timer,
+                language: 'ru',
+                creatorId: 1
             });
-            localStorage.setItem('tests', JSON.stringify(tests));
-
-            showToast("Тест успешно создан!");
-            setTimeout(() => window.location.href = 'tests.html', 1500);
-        };
-    </script>
-    <div class="bg-animation">
-        <div class="bg-1"></div>
-        <div class="bg-2"></div>
-        <div class="bg-3"></div>
-    </div>
-
-    <header>...</header>
-    <div class="container">
-       <div class="card animate-fade-up">...</div>
-    </div>
+            showToast("Тест создан!");
+            setTimeout(() => location.href = 'tests.html', 1000);
+        } catch (err) {
+            showToast("Ошибка сохранения: " + err.message, false);
+        }
+    };
+</script>
 </body>
 </html>

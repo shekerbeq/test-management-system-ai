@@ -25,6 +25,10 @@ public class TestConfigService {
         return testConfigRepository.findByCreatorId(creatorId);
     }
 
+    public List<TestConfig> findAll() {
+        return testConfigRepository.findAll();
+    }
+
     public void deleteById(Long id) {
         testConfigRepository.deleteById(id);
     }

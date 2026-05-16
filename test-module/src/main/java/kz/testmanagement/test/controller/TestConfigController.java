@@ -1,6 +1,11 @@
 package kz.testmanagement.test.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import kz.testmanagement.core.dto.QuestionDto;
+import kz.testmanagement.test.entity.Question;
 import kz.testmanagement.test.entity.TestConfig;
+import kz.testmanagement.test.repository.QuestionRepository;
 import kz.testmanagement.test.service.AnalyticsService;
 import kz.testmanagement.test.service.TestConfigService;
 import kz.testmanagement.test.service.TestCreationService;
@@ -15,13 +20,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/tests")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('TEACHER')")
+@PreAuthorize("hasRole('TEACHER')")   // все методы по умолчанию только для учителя
 public class TestConfigController {
 
     private final TestConfigService testConfigService;
     private final TestCreationService testCreationService;
-    private final AnalyticsService analyticsService; // ← добавил
+    private final AnalyticsService analyticsService;
+    private final QuestionRepository questionRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // ---------- учительские методы ----------
     @PostMapping
     public ResponseEntity<TestConfig> createTest(@RequestBody TestConfig config) {
         return ResponseEntity.ok(testConfigService.save(config));
@@ -74,5 +82,33 @@ public class TestConfigController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // ---------- методы, доступные студентам и учителям ----------
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER')")
+    public ResponseEntity<List<TestConfig>> getAllTests() {
+        return ResponseEntity.ok(testConfigService.findAll());
+    }
+
+    @GetMapping("/{id}/questions")
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER')")
+    public ResponseEntity<List<QuestionDto>> getTestQuestions(@PathVariable Long id) {
+        List<Question> questions = questionRepository.findByTestConfigId(id);
+        List<QuestionDto> dtos = questions.stream()
+                .map(q -> {
+                    List<String> options = parseOptions(q.getOptionsJson());
+                    return new QuestionDto(q.getText(), options, q.getCorrectIndex());
+                })
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    private List<String> parseOptions(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }
