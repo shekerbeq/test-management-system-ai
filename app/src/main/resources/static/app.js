@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${user.role === 'TEACHER' ? '<a href="tests.html">Тесттер</a><a href="create-test.html">Жасау</a>' : ''}
                     ${user.role === 'STUDENT' ? '<a href="dashboard.html">Қолжетімді тесттер</a>' : ''}
                     ${user.role === 'ADMIN' ? '<a href="admin-users.html">Әкімшілік</a>' : ''}
-                    <span class="user-pill">${user.fullName || user.email}</span>
+                    <a class="user-pill" href="profile.html">${user.fullName || user.email}</a>
                     <button class="btn btn-outline btn-sm" onclick="localStorage.clear();location.href='/landing.html'">Шығу</button>
                 ` : `
                     <a href="login.html">Кіру</a>

@@ -1,20 +1,80 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
     <meta charset="UTF-8">
-    <title>Eduvibe — тестирование</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eduvibe — AI тест платформасы</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="global-header"></header>
-<div class="container" style="text-align:center;margin-top:12vh">
-    <h1 style="font-size:3rem">Умное тестирование с AI</h1>
-    <p style="color:var(--muted);max-width:600px;margin:20px auto">Создавайте тесты, проходите их и анализируйте результаты</p>
-    <div style="margin-top:30px">
-        <a href="register.html" class="btn-primary" style="padding:16px 32px;font-size:18px">Начать</a>
-        <a href="login.html" class="btn-outline" style="margin-left:15px;padding:16px 32px;font-size:18px">Войти</a>
-    </div>
-</div>
+
+<main class="container">
+    <section class="hero">
+        <div class="hero-copy">
+            <span class="eyebrow">AI Test Management</span>
+            <h1>Eduvibe</h1>
+            <p>Оқытушыға тестті тез құрастыруға, студентке ыңғайлы тапсыруға, ал нәтижені анық әрі таза көруге арналған минималистік платформа.</p>
+            <div class="hero-actions">
+                <a href="register.html" class="btn btn-primary">Бастау</a>
+                <a href="login.html" class="btn btn-outline">Жүйеге кіру</a>
+            </div>
+        </div>
+
+        <div class="hero-board" aria-label="Платформа көрінісі">
+            <div class="mini-window">
+                <div class="mini-bar">
+                    <span class="mini-dot"></span>
+                    <span class="mini-dot"></span>
+                    <span class="mini-dot"></span>
+                </div>
+                <div class="mini-content">
+                    <div class="soft-strip"></div>
+                    <div class="metric-row">
+                        <div>
+                            <b>Java негіздері</b>
+                            <p>Mixed · Medium · қазақша</p>
+                        </div>
+                        <strong>10</strong>
+                    </div>
+                    <div class="metric-row">
+                        <div>
+                            <b>Preview дайын</b>
+                            <p>Сұрақтарды сақтар алдында өңдеу</p>
+                        </div>
+                        <span class="badge">AI</span>
+                    </div>
+                    <div class="metric-row">
+                        <div>
+                            <b>Нәтиже</b>
+                            <p>Автоматты тексеру және статистика</p>
+                        </div>
+                        <strong>92%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="feature-grid">
+        <article class="feature-card">
+            <span class="eyebrow">01</span>
+            <h3>AI генерация</h3>
+            <p>Тақырып, деңгей, тіл және сұрақ санын таңдап, дайын preview алыңыз.</p>
+        </article>
+        <article class="feature-card">
+            <span class="eyebrow">02</span>
+            <h3>Таза басқару</h3>
+            <p>Тестті жариялау, жабу, архивтеу және нәтижесін қарау бір жерде.</p>
+        </article>
+        <article class="feature-card">
+            <span class="eyebrow">03</span>
+            <h3>Жеңіл тапсыру</h3>
+            <p>Студент үшін артық элементсіз, түсінікті және жылдам интерфейс.</p>
+        </article>
+    </section>
+</main>
+
 <script src="app.js"></script>
 </body>
 </html>

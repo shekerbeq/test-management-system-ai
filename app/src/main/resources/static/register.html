@@ -1,47 +1,54 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
     <meta charset="UTF-8">
-    <title>Регистрация</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тіркелу — Eduvibe</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="global-header"></header>
-<div class="container" style="max-width:480px;margin-top:8vh">
-    <div class="card">
-        <h2>Регистрация</h2>
+<main class="container auth-wrap">
+    <section class="card auth-card">
+        <span class="eyebrow">Жаңа аккаунт</span>
+        <h1>Тіркелу</h1>
+        <p>Рөліңізді таңдаңыз: студент тест тапсырады, оқытушы тест жасайды.</p>
         <form id="f">
-            <label>Имя</label>
-            <input type="text" id="name" required>
-            <label>Email</label>
-            <input type="email" id="email" required>
-            <label>Пароль</label>
-            <input type="password" id="password" required>
-            <label>Роль</label>
-            <select id="role">
-                <option value="STUDENT">Студент</option>
-                <option value="TEACHER">Преподаватель</option>
-            </select>
-            <button type="submit" class="btn-primary" style="width:100%">Зарегистрироваться</button>
+            <label>Аты-жөні
+                <input type="text" id="name" required>
+            </label>
+            <label>Email
+                <input type="email" id="email" required>
+            </label>
+            <label>Құпия сөз
+                <input type="password" id="password" required>
+            </label>
+            <label>Рөл
+                <select id="role">
+                    <option value="STUDENT">Студент</option>
+                    <option value="TEACHER">Оқытушы</option>
+                </select>
+            </label>
+            <button type="submit" class="btn btn-primary" style="width:100%">Аккаунт ашу</button>
         </form>
-    </div>
-</div>
+    </section>
+</main>
 <script src="app.js"></script>
 <script>
     document.getElementById('f').onsubmit = async (e) => {
-      e.preventDefault();
-      try {
-        await api('/auth/register', 'POST', {
-          name: document.getElementById('name').value,
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-          role: document.getElementById('role').value
-        });
-        toast('Аккаунт создан!');
-        location.href = 'login.html';
-      } catch (err) {
-        toast(err.message, false);
-      }
+        e.preventDefault();
+        try {
+            await api('/auth/register', 'POST', {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            });
+            toast('Аккаунт құрылды');
+            location.href = 'login.html';
+        } catch (err) {
+            toast(err.message, false);
+        }
     };
 </script>
 </body>

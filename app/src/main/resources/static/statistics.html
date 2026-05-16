@@ -1,26 +1,35 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
     <meta charset="UTF-8">
-    <title>Статистика</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика — Eduvibe</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="global-header"></header>
-<div class="container">
-    <div class="card" id="stat"></div>
-</div>
+<main class="container">
+    <section class="panel">
+        <span class="eyebrow">Нәтижелер</span>
+        <h1>Тест статистикасы</h1>
+        <p>Тапсыру саны, аяқталған сессиялар және орташа балл.</p>
+        <div class="stat-grid" id="stat"></div>
+    </section>
+</main>
 <script src="app.js"></script>
 <script>
     const params = new URLSearchParams(location.search);
     const id = params.get('id');
+
     api(`/tests/${id}/statistics`).then(s => {
-      document.getElementById('stat').innerHTML = `
-        <h2>Статистика теста</h2>
-        <p>Попыток: ${s.totalAttempts}</p>
-        <p>Средний балл: ${Math.round(s.averageScore)}</p>
-        <p>Максимум: ${s.maxScore}</p>`;
-    });
+        document.getElementById('stat').innerHTML = `
+            <div class="stat-tile"><span>Барлық талпыныс</span><strong>${s.totalAttempts}</strong></div>
+            <div class="stat-tile"><span>Аяқталғаны</span><strong>${s.completedAttempts}</strong></div>
+            <div class="stat-tile"><span>Орташа балл</span><strong>${Math.round(s.averageScore || 0)}</strong></div>
+            <div class="stat-tile"><span>Ең жоғары</span><strong>${s.maxScore || 0}</strong></div>
+            <div class="stat-tile"><span>Ең төмен</span><strong>${s.minScore || 0}</strong></div>
+        `;
+    }).catch(error => toast(error.message, false));
 </script>
 </body>
 </html>

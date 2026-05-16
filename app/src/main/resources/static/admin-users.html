@@ -1,78 +1,73 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
     <meta charset="UTF-8">
-    <title>Админ-панель — Eduvibe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Әкімшілік — Eduvibe</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header id="global-header"></header>
+<header id="global-header"></header>
 
-    <div class="container animate-fade-up">
-        <h1 style="margin-bottom: 30px;">Панель администратора</h1>
-        
-        <div class="card">
-            <h3 style="margin-bottom: 20px;">Список пользователей системы</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Имя</th>
-                        <th>Email</th>
-                        <th>Роль</th>
-                        <th style="text-align: right;">Действие</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTableBody"></tbody>
-            </table>
-        </div>
-    </div>
+<main class="container">
+    <section class="panel section-title">
+        <span class="eyebrow">Admin</span>
+        <h1>Пайдаланушылар</h1>
+        <p>Жүйедегі аккаунттарды қарау және қажет болса жергілікті тізімнен өшіру.</p>
+    </section>
 
-    <script src="app.js"></script>
-    <script>
-        const currentUser = JSON.parse(localStorage.getItem('user'));
-        if (!currentUser || currentUser.role !== 'ROLE_ADMIN') {
-            window.location.href = 'error.html';
+    <section class="card">
+        <table>
+            <thead>
+            <tr>
+                <th>Аты-жөні</th>
+                <th>Email</th>
+                <th>Рөл</th>
+                <th style="text-align:right">Әрекет</th>
+            </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+        </table>
+    </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+    const admin = currentUser();
+    if (!admin || admin.role !== 'ADMIN') {
+        window.location.href = 'error.html';
+    }
+
+    function loadAdminUsers() {
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const tbody = document.getElementById('usersTableBody');
+
+        if (!users.length) {
+            tbody.innerHTML = '<tr><td colspan="4">Жергілікті тізімде пайдаланушы жоқ</td></tr>';
+            return;
         }
 
-        function loadAdminUsers() {
-            const users = JSON.parse(localStorage.getItem('users')) || [];
-            const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = users.map(user => `
+            <tr id="user_row_${user.email}">
+                <td><b>${user.name || user.fullName || '-'}</b></td>
+                <td>${user.email}</td>
+                <td><span class="badge ${user.role === 'TEACHER' ? '' : 'badge-secondary'}">${user.role}</span></td>
+                <td style="text-align:right">
+                    <button onclick="deleteUser('${user.email}')" class="btn btn-danger btn-sm">Жою</button>
+                </td>
+            </tr>
+        `).join('');
+    }
 
-            tbody.innerHTML = users.map(user => `
-                <tr id="user_row_${user.email}">
-                    <td><b>${user.name}</b></td>
-                    <td>${user.email}</td>
-                    <td><span class="badge ${user.role === 'ROLE_TEACHER' ? 'badge-primary' : 'badge-secondary'}">${user.role}</span></td>
-                    <td style="text-align: right;">
-                        <button onclick="deleteUser('${user.email}')" class="btn btn-danger" style="padding: 6px 14px; font-size: 13px;">Удалить</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function deleteUser(email) {
-            if (email === 'admin@test.ru') {
-                showToast("Нельзя удалить главного администратора!", "error");
-                return;
-            }
-            let users = JSON.parse(localStorage.getItem('users')) || [];
-            users = users.filter(u => u.email !== email);
-            localStorage.setItem('users', JSON.stringify(users));
-            showToast("Пользователь удален из системы");
-            loadAdminUsers();
-        }
-
+    function deleteUser(email) {
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        users = users.filter(u => u.email !== email);
+        localStorage.setItem('users', JSON.stringify(users));
+        showToast('Пайдаланушы өшірілді');
         loadAdminUsers();
-    </script>
-    <div class="bg-animation">
-        <div class="bg-1"></div>
-        <div class="bg-2"></div>
-        <div class="bg-3"></div>
-    </div>
+    }
 
-    <header>...</header>
-    <div class="container">
-       <div class="card animate-fade-up">...</div>
-    </div>
+    loadAdminUsers();
+</script>
 </body>
 </html>

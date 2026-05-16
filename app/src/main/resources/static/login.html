@@ -1,40 +1,45 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
     <meta charset="UTF-8">
-    <title>Вход</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кіру — Eduvibe</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="global-header"></header>
-<div class="container" style="max-width:480px;margin-top:8vh">
-    <div class="card">
-        <h2>Вход</h2>
+<main class="container auth-wrap">
+    <section class="card auth-card">
+        <span class="eyebrow">Қош келдіңіз</span>
+        <h1>Жүйеге кіру</h1>
+        <p>Тесттерді жасау немесе тапсыру үшін аккаунтыңызға кіріңіз.</p>
         <form id="f">
-            <label>Email</label>
-            <input type="email" id="email" required>
-            <label>Пароль</label>
-            <input type="password" id="password" required>
-            <button type="submit" class="btn-primary" style="width:100%">Войти</button>
+            <label>Email
+                <input type="email" id="email" required>
+            </label>
+            <label>Құпия сөз
+                <input type="password" id="password" required>
+            </label>
+            <button type="submit" class="btn btn-primary" style="width:100%">Кіру</button>
         </form>
-    </div>
-</div>
+    </section>
+</main>
 <script src="app.js"></script>
 <script>
     document.getElementById('f').onsubmit = async (e) => {
-      e.preventDefault();
-      try {
-        const d = await api('/auth/login', 'POST', {
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value
-        });
-        localStorage.setItem('jwt', d.token);
-        localStorage.setItem('user', JSON.stringify({ id: d.id, email: d.email, role: d.role, fullName: d.fullName }));
-        toast('Успешный вход');
-        location.href = 'dashboard.html';
-      } catch (err) {
-        toast(err.message, false);
-      }
+        e.preventDefault();
+        try {
+            const d = await api('/auth/login', 'POST', {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            });
+            localStorage.setItem('jwt', d.token);
+            localStorage.setItem('user', JSON.stringify({ id: d.id, email: d.email, role: d.role, fullName: d.fullName }));
+            toast('Сәтті кірдіңіз');
+            location.href = 'dashboard.html';
+        } catch (err) {
+            toast(err.message, false);
+        }
     };
 </script>
 </body>
