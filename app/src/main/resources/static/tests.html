@@ -2,63 +2,26 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мои тесты — Eduvibe</title>
+    <title>Мои тесты</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header id="global-header"></header>
-
-    <div class="container animate-fade-up">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-            <div>
-                <h1>Управление тестами</h1>
-                <p style="color: var(--text-muted);">Здесь вы можете редактировать ваши тесты и отслеживать активность</p>
-            </div>
-            <a href="create-test.html" class="btn btn-primary">+ Создать новый тест</a>
-        </div>
-
-        <div id="testsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px;">
-            </div>
-    </div>
-
-    <script src="app.js"></script>
-    <script>
-        async function loadTeacherTests() {
-            const tests = await request('/tests/my', 'GET');
-            const grid = document.getElementById('testsGrid');
-
-            if (tests.length === 0) {
-                grid.innerHTML = `
-                    <div class="card" style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
-                        <h3 style="margin-bottom: 10px;">Тестов пока нет</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 20px;">Создайте свой первый тест с помощью нашего генератора!</p>
-                        <a href="create-test.html" class="btn btn-secondary">Перейти в конструктор</a>
-                    </div>
-                `;
-                return;
-            }
-
-            grid.innerHTML = tests.map(test => `
-                <div class="card">
-                    <span class="badge badge-warning" style="margin-bottom: 15px;">Вопросов: ${test.questions.length}</span>
-                    <h3 style="margin-bottom: 15px;">${test.title}</h3>
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <a href="statistics.html?id=${test.id}" class="btn btn-primary" style="flex-grow: 1;">Статистика</a>
-                        <button onclick="deleteTest('${test.id}')" class="btn btn-danger" style="padding: 10px 15px;">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function deleteTest(id) {
-            let tests = JSON.parse(localStorage.getItem('tests')) || [];
-            tests = tests.filter(t => t.id !== id);
-            localStorage.setItem('tests', JSON.stringify(tests));
-            showToast("Тест удален");
-            loadTeacherTests();
-        }
-
-        loadTeacherTests();
-    </script>
+<header id="global-header"></header>
+<div class="container">
+    <h1>Мои тесты</h1>
+    <a href="create-test.html" class="btn-primary" style="margin-bottom:20px">Создать тест</a>
+    <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px"></div>
+</div>
+<script src="app.js"></script>
+<script>
+    api('/tests/my', 'GET').then(tests => {
+      const g = document.getElementById('grid');
+      tests.forEach(t => {
+        g.innerHTML += `<div class="card"><h3>${t.title}</h3><p>Вопросов: ${t.count}</p>
+          <a href="statistics.html?id=${t.id}" class="btn-outline">Статистика</a>
+          <button onclick="api('/tests/${t.id}','DELETE').then(()=>location.reload())" class="btn-danger" style="margin-left:10px">Удалить</button></div>`;
+      });
+    });
+</script>
 </body>
 </html>

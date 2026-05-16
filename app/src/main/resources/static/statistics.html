@@ -2,76 +2,25 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Аналитика теста — Eduvibe</title>
+    <title>Статистика</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header id="global-header"></header>
-
-    <div class="container animate-fade-up">
-        <a href="tests.html" style="text-decoration: none; color: var(--text-muted); font-size: 15px; display: inline-block; margin-bottom: 20px;">← Назад к списку тестов</a>
-        
-        <h1 id="statTitle" style="margin-bottom: 35px;">Статистика тестирования</h1>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 40px;">
-            <div class="card" style="background: var(--primary);">
-                <div style="font-size: 32px; font-weight: 800;" id="statAttempts">0</div>
-                <div style="font-size: 14px; margin-top: 5px; opacity: 0.8;">Пройдено раз</div>
-            </div>
-            <div class="card" style="background: var(--secondary);">
-                <div style="font-size: 32px; font-weight: 800;" id="statAvg">0%</div>
-                <div style="font-size: 14px; margin-top: 5px; opacity: 0.8;">Средний балл</div>
-            </div>
-            <div class="card" style="background: var(--accent);">
-                <div style="font-size: 32px; font-weight: 800;" id="statMax">0</div>
-                <div style="font-size: 14px; margin-top: 5px; opacity: 0.8;">Рекордный балл</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3 style="margin-bottom: 20px;">Успеваемость студентов</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Имя студента</th>
-                        <th>Дата попытки</th>
-                        <th style="text-align: right;">Оценка</th>
-                    </tr>
-                </thead>
-                <tbody id="statTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const testId = urlParams.get('id');
-
-        async function loadStatistics() {
-            if (!testId) {
-                window.location.href = 'tests.html';
-                return;
-            }
-
-            const stats = await request(`/tests/${testId}/statistics`, 'GET');
-
-            document.getElementById('statTitle').innerText = `Аналитика: ${stats.title}`;
-            document.getElementById('statAttempts').innerText = stats.attempts;
-            document.getElementById('statAvg').innerText = stats.avgScore + '%';
-            document.getElementById('statMax').innerText = stats.maxScore;
-
-            const tbody = document.getElementById('statTableBody');
-            tbody.innerHTML = stats.results.length ? stats.results.map(r => `
-                <tr>
-                    <td><b>${r.studentName}</b> (${r.studentEmail})</td>
-                    <td>${r.date}</td>
-                    <td style="text-align: right; font-weight: 700; color: var(--text-main);">${r.score} / ${r.maxScore}</td>
-                </tr>
-            `).join('') : `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;">Тест еще никто не проходил.</td></tr>`;
-        }
-
-        loadStatistics();
-    </script>
+<header id="global-header"></header>
+<div class="container">
+    <div class="card" id="stat"></div>
+</div>
+<script src="app.js"></script>
+<script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    api(`/tests/${id}/statistics`).then(s => {
+      document.getElementById('stat').innerHTML = `
+        <h2>Статистика теста</h2>
+        <p>Попыток: ${s.totalAttempts}</p>
+        <p>Средний балл: ${Math.round(s.averageScore)}</p>
+        <p>Максимум: ${s.maxScore}</p>`;
+    });
+</script>
 </body>
 </html>

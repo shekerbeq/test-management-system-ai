@@ -1,13 +1,18 @@
+// AuthController.java (полная замена)
 package kz.testmanagement.user.controller;
 
 import kz.testmanagement.core.entity.Role;
 import kz.testmanagement.core.entity.User;
+import kz.testmanagement.user.dto.LoginRequest;
+import kz.testmanagement.user.dto.RegisterRequest;
 import kz.testmanagement.user.security.JwtService;
 import kz.testmanagement.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,22 +24,30 @@ public class AuthController {
     private final JwtService jwtService;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        if (user.getRole() == null) {
-            user.setRole(Role.STUDENT);
-        }
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+        User user = new User();
+        user.setFullName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(request.getRoleEnum() == null ? Role.STUDENT : request.getRoleEnum());
         userService.registerUser(user);
         return ResponseEntity.ok("Тіркелу сәтті аяқталды");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
-        var userOpt = userService.findByEmail(email);
-        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getPassword())) {
-            return ResponseEntity.status(401).body("Қате email немесе құпия сөз");
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
+        var userOpt = userService.findByEmail(request.getEmail());
+        if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
+            return ResponseEntity.status(401).body(Map.of("error", "Қате email немесе құпия сөз"));
         }
-        String token = jwtService.generateToken(email);
-        return ResponseEntity.ok(token);
+        String token = jwtService.generateToken(request.getEmail());
+        User user = userOpt.get();
+        Map<String, String> response = Map.of(
+                "token", token,
+                "email", user.getEmail(),
+                "role", user.getRole().name(),     // STUDENT, TEACHER, ADMIN
+                "fullName", user.getFullName()
+        );
+        return ResponseEntity.ok(response);
     }
 }

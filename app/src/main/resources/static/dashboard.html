@@ -2,117 +2,39 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Панель управления — Eduvibe</title>
+    <title>Панель</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="background.css">
 </head>
 <body>
-    <header id="global-header"></header>
-
-    <div class="container animate-fade-up">
-        <div id="roleWelcome" style="margin-bottom: 30px;">
-            <h2>Загрузка вашей панели...</h2>
-        </div>
-
-        <div id="studentView" style="display: none;">
-            <div style="display: flex; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
-                <button class="btn btn-primary" id="tabTests" onclick="switchTab('tests')">Доступные тесты</button>
-                <button class="btn btn-outline" id="tabResults" onclick="switchTab('results')">Мои результаты</button>
-            </div>
-
-            <div id="studentTestsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px;">
-                </div>
-
-            <div id="studentResultsList" style="display: none; background: white; border-radius: 20px; padding: 25px;">
-                <h3 style="margin-bottom: 20px;">Пройденные вами тесты</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Название теста</th>
-                            <th>Дата прохождения</th>
-                            <th style="text-align: right;">Результат</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTableBody"></tbody>
-                </table>
-            </div>
-        </div>
+<header id="global-header"></header>
+<div class="container">
+    <div id="welcome"></div>
+    <div id="studentPanel" style="display:none">
+        <div id="testsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px"></div>
     </div>
+</div>
+<script src="app.js"></script>
+<script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) location.href = 'login.html';
+    document.getElementById('welcome').innerHTML = `<h1>Привет, ${user.fullName || user.email}</h1><p>Роль: ${user.role}</p>`;
 
-    <script src="app.js"></script>
-    <script>
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (!user) window.location.href = 'login.html';
+    if (user.role === 'TEACHER') location.href = 'tests.html';
+    else if (user.role === 'STUDENT') {
+      document.getElementById('studentPanel').style.display = 'block';
+      api('/tests/my', 'GET').then(tests => {
+        const grid = document.getElementById('testsGrid');
+        if (!tests.length) grid.innerHTML = '<p>Тестов пока нет</p>';
+        else tests.forEach(t => {
+          grid.innerHTML += `<div class="card"><h3>${t.title}</h3><p>${t.topic || ''}</p><button onclick="start(${t.id})" class="btn-primary">Пройти</button></div>`;
+        });
+      }).catch(e => toast(e.message, false));
+    }
 
-        document.getElementById('roleWelcome').innerHTML = `
-            <h1>Привет, ${user.name}!</h1>
-            <p style="color: var(--text-muted);">Рады тебя видеть. Твоя роль в системе: <b>${user.role === 'ROLE_TEACHER' ? 'Преподаватель' : 'Студент'}</b></p>
-        `;
-
-        if (user.role === 'ROLE_TEACHER') {
-            window.location.href = 'tests.html';
-        } else if (user.role === 'ROLE_STUDENT') {
-            document.getElementById('studentView').style.display = 'block';
-            loadStudentDashboard();
-        }
-
-        function switchTab(tab) {
-            if (tab === 'tests') {
-                document.getElementById('studentTestsList').style.display = 'grid';
-                document.getElementById('studentResultsList').style.display = 'none';
-                document.getElementById('tabTests').className = 'btn btn-primary';
-                document.getElementById('tabResults').className = 'btn btn-outline';
-            } else {
-                document.getElementById('studentTestsList').style.display = 'none';
-                document.getElementById('studentResultsList').style.display = 'block';
-                document.getElementById('tabTests').className = 'btn btn-outline';
-                document.getElementById('tabResults').className = 'btn btn-primary';
-                loadResultsTable();
-            }
-        }
-
-        function loadStudentDashboard() {
-            const list = document.getElementById('studentTestsList');
-            const tests = JSON.parse(localStorage.getItem('tests')) || [];
-            
-            list.innerHTML = tests.map(test => `
-                <div class="card">
-                    <span class="badge badge-primary" style="margin-bottom: 15px;">${test.category || 'Тестирование'}</span>
-                    <h3 style="margin-bottom: 10px;">${test.title}</h3>
-                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Время на прохождение: ${test.timer} минут</p>
-                    <button onclick="startTest('${test.id}')" class="btn btn-secondary" style="width: 100%;">Начать тест</button>
-                </div>
-            `).join('');
-        }
-
-        function startTest(id) {
-            localStorage.setItem('active_test_id', id);
-            window.location.href = 'session.html';
-        }
-
-        function loadResultsTable() {
-            const body = document.getElementById('resultsTableBody');
-            const sessions = JSON.parse(localStorage.getItem('sessions')) || [];
-            const userSessions = sessions.filter(s => s.studentEmail === user.email);
-
-            body.innerHTML = userSessions.length ? userSessions.map(s => `
-                <tr>
-                    <td><b>${s.testTitle}</b></td>
-                    <td>${s.date}</td>
-                    <td style="text-align: right; font-weight: 700;">${s.score} / ${s.maxScore}</td>
-                </tr>
-            `).join('') : `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Вы еще не проходили тесты.</td></tr>`;
-        }
-    </script>
-    <div class="bg-animation">
-        <div class="bg-1"></div>
-        <div class="bg-2"></div>
-        <div class="bg-3"></div>
-    </div>
-
-    <header>...</header>
-    <div class="container">
-       <div class="card animate-fade-up">...</div>
-    </div>
+    function start(id) {
+      localStorage.setItem('active_test_id', id);
+      location.href = 'session.html';
+    }
+</script>
 </body>
 </html>

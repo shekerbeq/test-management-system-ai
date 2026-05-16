@@ -1,96 +1,51 @@
+const API = 'http://localhost:8080/api';
 
-const API_BASE = 'http://localhost:8080/api';
-
-function showToast(message, type = 'success') {
-    let container = document.querySelector('.toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+function toast(msg, ok = true) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;padding:14px 24px;border-radius:12px;color:white;background:${ok?'#22c55e':'#ef4444'};z-index:9999`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
 }
 
-async function request(endpoint, method = 'GET', body = null) {
-    const token = localStorage.getItem('jwt');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+async function api(url, method = 'GET', body = null) {
+  const token = localStorage.getItem('jwt');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : null
-    });
-
-    if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('jwt');
-        localStorage.removeItem('user');
-        window.location.href = '/login.html';
-        throw new Error('Unauthorized');
-    }
-
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Ошибка сервера');
-    }
-
-    const text = await response.text();
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        return text;
-    }
+  const res = await fetch(API + url, { method, headers, body: body ? JSON.stringify(body) : null });
+  if (res.status === 401 || res.status === 403) {
+    localStorage.clear();
+    location.href = '/login.html';
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || 'Server error');
+  }
+  const txt = await res.text();
+  try { return JSON.parse(txt); } catch { return txt; }
 }
 
+// Хедер
 document.addEventListener('DOMContentLoaded', () => {
-    const headerElement = document.getElementById('global-header');
-    if (!headerElement) return;
-
-    const user = JSON.parse(localStorage.getItem('user'));
-    let navContent = `
-        <div class="nav-container">
-            <a href="landing.html" class="logo"><span class="logo-dot"></span>Eduvibe</a>
-            <div class="nav-menu">
-    `;
-
-    if (user) {
-        if (user.role === 'ROLE_TEACHER') {
-            navContent += `
-                <a href="tests.html" class="nav-link">Мои тесты</a>
-                <a href="create-test.html" class="nav-link">Создать тест</a>
-            `;
-        } else if (user.role === 'ROLE_STUDENT') {
-            navContent += `
-                <a href="dashboard.html" class="nav-link">Доступные тесты</a>
-                <a href="dashboard.html?tab=results" class="nav-link">Мои результаты</a>
-            `;
-        } else if (user.role === 'ROLE_ADMIN') {
-            navContent += `<a href="admin-users.html" class="nav-link">Админ-панель</a>`;
-        }
-        navContent += `
-            <a href="profile.html" class="nav-link">👤 ${user.fullName || user.email}</a>
-            <button onclick="logout()" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">Выйти</button>
-        `;
-    } else {
-        navContent += `
-            <a href="login.html" class="nav-link">Вход</a>
-            <a href="register.html" class="btn btn-primary" style="padding: 10px 20px; font-size: 14px;">Регистрация</a>
-        `;
-    }
-
-    navContent += `</div></div>`;
-    headerElement.innerHTML = navContent;
+  const header = document.getElementById('global-header');
+  if (!header) return;
+  const user = JSON.parse(localStorage.getItem('user'));
+  header.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 30px;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+      <a href="landing.html" style="font-weight:800;font-size:20px;color:var(--primary);text-decoration:none">Eduvibe</a>
+      <div style="display:flex;gap:20px;align-items:center">
+        ${user ? `
+          ${user.role === 'TEACHER' ? '<a href="tests.html">Мои тесты</a> <a href="create-test.html">Создать тест</a>' : ''}
+          ${user.role === 'STUDENT' ? '<a href="dashboard.html">Тесты</a> <a href="dashboard.html?tab=results">Результаты</a>' : ''}
+          <span>${user.fullName || user.email}</span>
+          <button onclick="localStorage.clear();location.href='/landing.html'" class="btn-outline" style="padding:6px 14px;font-size:13px">Выйти</button>
+        ` : `
+          <a href="login.html">Вход</a>
+          <a href="register.html" class="btn-primary" style="padding:8px 16px;font-size:14px">Регистрация</a>
+        `}
+      </div>
+    </div>
+  `;
 });
-
-function logout() {
-    localStorage.removeItem('jwt');
-    localStorage.removeItem('user');
-    window.location.href = 'landing.html';
-}
