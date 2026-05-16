@@ -2,26 +2,58 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мои тесты</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менің тесттерім</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="global-header"></header>
-<div class="container">
-    <h1>Мои тесты</h1>
-    <a href="create-test.html" class="btn-primary" style="margin-bottom:20px">Создать тест</a>
-    <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px"></div>
-</div>
+<main class="container">
+    <section class="panel section-title">
+        <span class="eyebrow">Teacher workspace</span>
+        <h1>Менің тесттерім</h1>
+        <p>Тесттерді жариялау, жабу, архивке жіберу және статистикасын қарау.</p>
+        <a href="create-test.html" class="btn btn-primary">Жаңа тест жасау</a>
+    </section>
+    <section id="grid" class="questions-panel"></section>
+</main>
 <script src="app.js"></script>
 <script>
-    api('/tests/my', 'GET').then(tests => {
-      const g = document.getElementById('grid');
-      tests.forEach(t => {
-        g.innerHTML += `<div class="card"><h3>${t.title}</h3><p>Вопросов: ${t.count}</p>
-          <a href="statistics.html?id=${t.id}" class="btn-outline">Статистика</a>
-          <button onclick="api('/tests/${t.id}','DELETE').then(()=>location.reload())" class="btn-danger" style="margin-left:10px">Удалить</button></div>`;
-      });
-    });
+    const user = currentUser();
+    request(`/tests/my?creatorId=${user?.id || 1}`, 'GET')
+        .then(tests => {
+            const grid = document.getElementById('grid');
+            if (!tests.length) {
+                grid.innerHTML = '<div class="panel"><h2>Тест жоқ</h2><p>AI генерация арқылы бірінші тестіңізді жасаңыз.</p></div>';
+                return;
+            }
+            grid.innerHTML = tests.map(test => `
+                <article class="card">
+                    <span class="badge">${test.status}</span>
+                    <h2>${test.title}</h2>
+                    <p>${test.topic || ''}</p>
+                    <p>${test.count} сұрақ · ${test.questionType} · ${test.timerMin || 0} минут</p>
+                    <div class="toolbar">
+                        <a href="statistics.html?id=${test.id}" class="btn btn-outline">Статистика</a>
+                        <button class="btn btn-outline" onclick="setStatus(${test.id}, 'PUBLISHED')">Жариялау</button>
+                        <button class="btn btn-outline" onclick="setStatus(${test.id}, 'CLOSED')">Жабу</button>
+                        <button class="btn btn-danger" onclick="removeTest(${test.id})">Жою</button>
+                    </div>
+                </article>
+            `).join('');
+        })
+        .catch(error => toast(error.message, false));
+
+    async function setStatus(id, status) {
+        const test = await request(`/tests/${id}`, 'GET');
+        await request(`/tests/${id}`, 'PUT', { ...test, status });
+        location.reload();
+    }
+
+    async function removeTest(id) {
+        await request(`/tests/${id}`, 'DELETE');
+        location.reload();
+    }
 </script>
 </body>
 </html>

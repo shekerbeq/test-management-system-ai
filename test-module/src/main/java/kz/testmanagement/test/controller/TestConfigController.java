@@ -41,8 +41,8 @@ public class TestConfigController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<TestConfig>> getMyTests() {
-        return ResponseEntity.ok(testConfigService.findByCreatorId(1L));
+    public ResponseEntity<List<TestConfig>> getMyTests(@RequestParam(defaultValue = "1") Long creatorId) {
+        return ResponseEntity.ok(testConfigService.findByCreatorId(creatorId));
     }
 
     @GetMapping("/{id}")
@@ -98,7 +98,7 @@ public class TestConfigController {
         List<QuestionDto> dtos = questions.stream()
                 .map(q -> {
                     List<String> options = parseOptions(q.getOptionsJson());
-                    return new QuestionDto(q.getText(), options, parseCorrectIndices(q), q.getCorrectIndex(), q.isOpenQuestion());
+                    return new QuestionDto(q.getId(), q.getText(), options, parseCorrectIndices(q), q.getCorrectIndex(), q.isOpenQuestion());
                 })
                 .toList();
         return ResponseEntity.ok(dtos);

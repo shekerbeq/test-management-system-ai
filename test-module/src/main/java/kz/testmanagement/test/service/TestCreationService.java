@@ -28,14 +28,15 @@ public class TestCreationService {
         // 1. Сохраняем конфиг теста
         TestConfig saved = testConfigRepository.save(config);
 
-        // 2. Генерируем вопросы через AI
-        List<QuestionDto> dtos = aiGeneratorService.generateQuestions(
-                saved.getTopic(),
-                saved.getDifficulty(),
-                saved.getQuestionType(),
-                saved.getLanguage(),
-                saved.getCount()
-        );
+        List<QuestionDto> dtos = config.getPreviewQuestions() != null && !config.getPreviewQuestions().isEmpty()
+                ? config.getPreviewQuestions()
+                : aiGeneratorService.generateQuestions(
+                        saved.getTopic(),
+                        saved.getDifficulty(),
+                        saved.getQuestionType(),
+                        saved.getLanguage(),
+                        saved.getCount()
+                );
 
         // 3. Превращаем DTO в сущности Question и сохраняем
         for (QuestionDto dto : dtos) {

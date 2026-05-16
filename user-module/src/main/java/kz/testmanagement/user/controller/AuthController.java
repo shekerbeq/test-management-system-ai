@@ -35,15 +35,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request) {
         var userOpt = userService.findByEmail(request.getEmail());
         if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
             return ResponseEntity.status(401).body(Map.of("error", "Қате email немесе құпия сөз"));
         }
         String token = jwtService.generateToken(request.getEmail());
         User user = userOpt.get();
-        Map<String, String> response = Map.of(
+        Map<String, Object> response = Map.of(
                 "token", token,
+                "id", user.getId(),
                 "email", user.getEmail(),
                 "role", user.getRole().name(),     // STUDENT, TEACHER, ADMIN
                 "fullName", user.getFullName()

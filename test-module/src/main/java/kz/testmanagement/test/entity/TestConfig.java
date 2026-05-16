@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import kz.testmanagement.core.dto.QuestionDto;
+
+import java.util.List;
 
 @Entity
 @Table(name = "test_configs")
@@ -47,6 +50,9 @@ public class TestConfig {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Transient
+    private List<QuestionDto> previewQuestions;
 
     @PrePersist
     protected void onCreate() {

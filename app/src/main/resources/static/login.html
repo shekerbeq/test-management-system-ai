@@ -29,7 +29,7 @@
           password: document.getElementById('password').value
         });
         localStorage.setItem('jwt', d.token);
-        localStorage.setItem('user', JSON.stringify({ email: d.email, role: d.role, fullName: d.fullName }));
+        localStorage.setItem('user', JSON.stringify({ id: d.id, email: d.email, role: d.role, fullName: d.fullName }));
         toast('Успешный вход');
         location.href = 'dashboard.html';
       } catch (err) {

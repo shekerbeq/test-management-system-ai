@@ -2,38 +2,51 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="global-header"></header>
-<div class="container">
-    <div id="welcome"></div>
-    <div id="studentPanel" style="display:none">
-        <div id="testsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px"></div>
-    </div>
-</div>
+<main class="container">
+    <section class="panel section-title">
+        <span class="eyebrow">Student dashboard</span>
+        <h1 id="welcome">Қош келдіңіз</h1>
+        <p>Жарияланған тесттерді ашып, бірден тапсыруға болады.</p>
+    </section>
+    <section id="testsGrid" class="questions-panel"></section>
+</main>
 <script src="app.js"></script>
 <script>
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = currentUser();
     if (!user) location.href = 'login.html';
-    document.getElementById('welcome').innerHTML = `<h1>Привет, ${user.fullName || user.email}</h1><p>Роль: ${user.role}</p>`;
-
     if (user.role === 'TEACHER') location.href = 'tests.html';
-    else if (user.role === 'STUDENT') {
-      document.getElementById('studentPanel').style.display = 'block';
-      api('/tests/my', 'GET').then(tests => {
-        const grid = document.getElementById('testsGrid');
-        if (!tests.length) grid.innerHTML = '<p>Тестов пока нет</p>';
-        else tests.forEach(t => {
-          grid.innerHTML += `<div class="card"><h3>${t.title}</h3><p>${t.topic || ''}</p><button onclick="start(${t.id})" class="btn-primary">Пройти</button></div>`;
-        });
-      }).catch(e => toast(e.message, false));
-    }
 
-    function start(id) {
-      localStorage.setItem('active_test_id', id);
-      location.href = 'session.html';
+    document.getElementById('welcome').textContent = `Сәлем, ${user.fullName || user.email}`;
+
+    request('/tests/all', 'GET')
+        .then(tests => {
+            const grid = document.getElementById('testsGrid');
+            const published = tests.filter(test => test.status === 'PUBLISHED' || !test.status);
+            if (!published.length) {
+                grid.innerHTML = '<div class="panel"><h2>Әзірге тест жоқ</h2><p>Оқытушы тест жариялаған соң, ол осы жерде көрінеді.</p></div>';
+                return;
+            }
+            grid.innerHTML = published.map(test => `
+                <article class="card">
+                    <span class="badge">${test.difficulty}</span>
+                    <h2>${test.title}</h2>
+                    <p>${test.topic || ''}</p>
+                    <p>${test.count} сұрақ · ${test.timerMin || 0} минут · ${test.language}</p>
+                    <button class="btn btn-primary" onclick="startTest(${test.id})">Тапсыру</button>
+                </article>
+            `).join('');
+        })
+        .catch(error => toast(error.message, false));
+
+    function startTest(id) {
+        localStorage.setItem('active_test_id', id);
+        location.href = 'session.html';
     }
 </script>
 </body>
