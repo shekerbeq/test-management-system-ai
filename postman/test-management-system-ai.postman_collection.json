@@ -1,0 +1,33 @@
+{
+  "info": {
+    "name": "Test Management System AI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": { "mode": "raw", "raw": "{\"email\":\"teacher@example.com\",\"password\":\"password\"}" }
+      }
+    },
+    {
+      "name": "Generate questions",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/tests/generate?topic=Java&difficulty=Medium&questionType=Mixed&language=kk&count=5"
+      }
+    },
+    {
+      "name": "Export CSV",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/tests/{{testId}}/export.csv"
+      }
+    }
+  ]
+}

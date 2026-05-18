@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менің тесттерім</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container">
+    <section class="panel section-title">
+        <span class="eyebrow" data-i18n="teacherPanel">Панель учителя</span>
+        <h1 data-i18n="myTests">Мои тесты</h1>
+        <p>Тесттерді жариялау, жабу, архивке жіберу және статистикасын қарау.</p>
+        <a href="create-test.html" class="btn btn-primary" data-i18n="newTest">Создать новый тест</a>
+    </section>
+    <section id="grid" class="questions-panel"></section>
+</main>
+<script src="app.js"></script>
+<script>
+    const user = currentUser();
+    if (!user) location.href = 'login.html';
+    request(`/tests/my?creatorId=${user?.id || 1}`, 'GET')
+        .then(tests => {
+            const grid = document.getElementById('grid');
+            if (!tests.length) {
+                grid.innerHTML = '<div class="panel"><h2>Тест жоқ</h2><p>AI генерация арқылы бірінші тестіңізді жасаңыз.</p></div>';
+                return;
+            }
+            grid.innerHTML = tests.map(test => `
+                <article class="card">
+                    <span class="badge">${test.status}</span>
+                    <h2>${test.title}</h2>
+                    <p>${test.topic || ''}</p>
+                    <p>${test.count} сұрақ · ${test.questionType} · ${test.timerMin || 0} минут</p>
+                    <div class="toolbar">
+                        <div>
+                            <span class="badge">${t('invite')}: ${test.accessCode || '-'}</span>
+                            <span class="muted-small">${inviteLink(test.accessCode || '')}</span>
+                        </div>
+                        <a href="statistics.html?id=${test.id}" class="btn btn-outline">${t('statistics')}</a>
+                        <a href="create-test.html?id=${test.id}" class="btn btn-outline">${t('edit')}</a>
+                        <button class="btn btn-outline" onclick="copyTest(${test.id})">${t('copy')}</button>
+                        <button class="btn btn-outline" onclick="copyInvite(${test.id}, '${test.accessCode || ''}', '${test.status || ''}')">${t('invite')}</button>
+                        <button class="btn btn-outline" onclick="downloadExport(${test.id}, 'csv')">CSV</button>
+                        <button class="btn btn-outline" onclick="downloadExport(${test.id}, 'pdf')">PDF</button>
+                        <button class="btn btn-outline" onclick="setStatus(${test.id}, 'PUBLISHED')">${t('publish')}</button>
+                        <button class="btn btn-outline" onclick="setStatus(${test.id}, 'CLOSED')">${t('close')}</button>
+                        <button class="btn btn-danger" onclick="removeTest(${test.id})">${t('delete')}</button>
+                    </div>
+                </article>
+            `).join('');
+        })
+        .catch(error => toast(error.message, false));
+
+    async function setStatus(id, status) {
+        const test = await request(`/tests/${id}`, 'GET');
+        await request(`/tests/${id}`, 'PUT', { ...test, status });
+        location.reload();
+    }
+
+    async function removeTest(id) {
+        await request(`/tests/${id}`, 'DELETE');
+        location.reload();
+    }
+
+    async function copyTest(id) {
+        await request(`/tests/${id}/copy`, 'POST');
+        toast('Тест скопирован');
+        location.reload();
+    }
+
+    async function copyInvite(id, accessCode, status) {
+        if (status !== 'PUBLISHED') {
+            await setStatusSilently(id, 'PUBLISHED');
+        }
+        const link = inviteLink(accessCode);
+        await navigator.clipboard.writeText(link);
+        toast(`${t('copiedInvite')}: ${accessCode}`);
+    }
+
+    async function setStatusSilently(id, status) {
+        const test = await request(`/tests/${id}`, 'GET');
+        await request(`/tests/${id}`, 'PUT', { ...test, status });
+    }
+
+    function inviteLink(accessCode) {
+        return `${location.origin}/dashboard.html?code=${encodeURIComponent(accessCode)}`;
+    }
+
+    async function downloadExport(id, type) {
+        const response = await fetch(`/api/tests/${id}/export.${type}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
+        });
+        if (!response.ok) return toast('Экспорт не удался', false);
+        const blob = await response.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `test-${id}-stats.${type}`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+</script>
+</body>
+</html>

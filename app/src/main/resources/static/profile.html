@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — Eduvibe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+
+<main class="container auth-wrap">
+    <section class="card auth-card">
+        <span class="eyebrow">Аккаунт</span>
+        <h1>Профиль</h1>
+        <p>Жергілікті браузердегі профиль деректерін жаңарту.</p>
+        <form id="profileForm">
+            <label>Аты-жөні
+                <input type="text" id="profName" required>
+            </label>
+            <label>Email
+                <input type="email" id="profEmail" disabled>
+            </label>
+            <button type="submit" class="btn btn-primary" style="width:100%">Сақтау</button>
+        </form>
+    </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+    const profileUser = currentUser();
+    if (!profileUser) window.location.href = 'login.html';
+
+    document.getElementById('profName').value = profileUser.fullName || profileUser.name || '';
+    document.getElementById('profEmail').value = profileUser.email;
+
+    document.getElementById('profileForm').onsubmit = (e) => {
+        e.preventDefault();
+        profileUser.fullName = document.getElementById('profName').value;
+        localStorage.setItem('user', JSON.stringify(profileUser));
+        showToast('Профиль сақталды');
+        setTimeout(() => window.location.reload(), 700);
+    };
+</script>
+</body>
+</html>

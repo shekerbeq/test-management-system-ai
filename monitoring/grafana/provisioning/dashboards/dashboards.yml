@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: TMS
+    orgId: 1
+    folder: TMS
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

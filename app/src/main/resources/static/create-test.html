@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест жасау</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+
+<main class="container page-grid">
+    <section class="panel">
+        <div class="section-title">
+            <span class="eyebrow">AI генерация</span>
+            <h1>Жаңа тест</h1>
+            <p>Тақырыпты, деңгейді және сұрақ түрін таңдаңыз. Жүйе алдын ала нұсқа жасайды, ал сіз сақтар алдында әр сұрақты өңдей аласыз.</p>
+        </div>
+
+        <div class="form-grid">
+            <label>Тест атауы
+                <input type="text" id="title" placeholder="Мысалы: Java негіздері" required>
+            </label>
+            <label>Тақырып
+                <input type="text" id="topic" placeholder="Мысалы: Spring Boot Security">
+            </label>
+            <label>Сұрақ саны
+                <select id="count">
+                    <option>5</option>
+                    <option>10</option>
+                    <option selected>15</option>
+                    <option>20</option>
+                    <option>30</option>
+                </select>
+            </label>
+            <label>Сұрақ типі
+                <select id="questionType">
+                    <option value="Single">Бір жауапты</option>
+                    <option value="Multiple">Көп жауапты</option>
+                    <option value="Mixed" selected>Аралас</option>
+                    <option value="Open">Ашық сұрақ</option>
+                </select>
+            </label>
+            <label>Күрделілік
+                <select id="difficulty">
+                    <option value="Easy">Easy</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </label>
+            <label>Тіл
+                <select id="language">
+                    <option value="kk" selected>Қазақша</option>
+                    <option value="ru">Орысша</option>
+                    <option value="en">English</option>
+                </select>
+            </label>
+            <label>Уақыт лимиті, минут
+                <input type="number" id="timer" value="15" min="1" max="240">
+            </label>
+            <label>Жариялау күйі
+                <select id="status">
+                    <option value="DRAFT">Черновик</option>
+                    <option value="PUBLISHED">Жариялау</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="toolbar">
+            <button class="btn btn-primary" id="generateBtn" type="button">AI арқылы генерациялау</button>
+            <button class="btn btn-outline" id="addBtn" type="button">Қолмен қосу</button>
+            <button class="btn btn-success" id="saveBtn" type="button">Тестті сақтау</button>
+        </div>
+    </section>
+
+    <aside class="panel side-panel">
+        <span class="eyebrow">Алдын ала қарау</span>
+        <h2 id="previewCount">0 сұрақ</h2>
+        <p>Генерацияланған сұрақтар осы жерде өңделеді. Бір жауапты сұрақта radio, көп жауаптыда checkbox, ашық сұрақта жауап нұсқалары жоқ.</p>
+    </aside>
+
+    <section class="questions-panel" id="questionsContainer"></section>
+</main>
+
+<script src="app.js"></script>
+<script>
+    const user = currentUser();
+    if (!user) location.href = 'login.html';
+
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('id');
+    const container = document.getElementById('questionsContainer');
+    const previewCount = document.getElementById('previewCount');
+
+    document.getElementById('generateBtn').addEventListener('click', generateAI);
+    document.getElementById('addBtn').addEventListener('click', () => addQuestion({
+        question: '',
+        options: ['', '', '', ''],
+        correct: 0,
+        correctIndices: [0],
+        open: false
+    }));
+    document.getElementById('saveBtn').addEventListener('click', saveTest);
+    if (editId) {
+        document.querySelector('h1').textContent = 'Редактировать тест';
+        document.getElementById('saveBtn').textContent = 'Сохранить изменения';
+        loadExistingTest(editId).catch(error => toast(error.message, false));
+    }
+
+    function formValue(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    async function generateAI() {
+        const title = formValue('title');
+        const topic = formValue('topic') || title;
+        if (!topic) return toast('Тақырып енгізіңіз', false);
+
+        const btn = document.getElementById('generateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Генерация жүріп жатыр...';
+
+        try {
+            const params = new URLSearchParams({
+                topic,
+                difficulty: formValue('difficulty'),
+                questionType: formValue('questionType'),
+                language: formValue('language'),
+                count: formValue('count')
+            });
+            const questions = await request(`/tests/generate?${params}`, 'POST');
+            container.innerHTML = '';
+            questions.forEach(addQuestion);
+            toast('AI сұрақтары дайын');
+            updateCount();
+        } catch (error) {
+            toast(error.message, false);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'AI арқылы генерациялау';
+        }
+    }
+
+    function addQuestion(question) {
+        const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+        const isOpen = Boolean(question.open);
+        const options = question.options && question.options.length ? question.options : ['', '', '', ''];
+        const correctIndices = question.correctIndices && question.correctIndices.length
+            ? question.correctIndices
+            : (question.correct !== null && question.correct !== undefined ? [question.correct] : []);
+
+        const card = document.createElement('article');
+        card.className = 'question-card';
+        card.dataset.id = id;
+        card.innerHTML = `
+            <div class="question-head">
+                <select class="q-type">
+                    <option value="single" ${!isOpen && correctIndices.length <= 1 ? 'selected' : ''}>Бір жауапты</option>
+                    <option value="multiple" ${!isOpen && correctIndices.length > 1 ? 'selected' : ''}>Көп жауапты</option>
+                    <option value="open" ${isOpen ? 'selected' : ''}>Ашық</option>
+                </select>
+                <button class="icon-btn" type="button" title="Жою">×</button>
+            </div>
+            <label>Сұрақ мәтіні
+                <textarea class="q-text" rows="2" placeholder="Сұрақты енгізіңіз">${escapeHtml(question.question || '')}</textarea>
+            </label>
+            <div class="options-list"></div>
+        `;
+
+        card.querySelector('.icon-btn').addEventListener('click', () => {
+            card.remove();
+            updateCount();
+        });
+        card.querySelector('.q-type').addEventListener('change', () => renderOptions(card));
+        container.appendChild(card);
+        renderOptions(card, options, correctIndices);
+        updateCount();
+    }
+
+    function renderOptions(card, options = null, correctIndices = null) {
+        const type = card.querySelector('.q-type').value;
+        const list = card.querySelector('.options-list');
+        if (type === 'open') {
+            list.innerHTML = '<div class="open-note">Ашық сұрақ: жауапты оқытушы немесе AI кейін тексереді.</div>';
+            return;
+        }
+
+        const existing = options || Array.from(card.querySelectorAll('.q-option')).map(input => input.value);
+        const selected = correctIndices || Array.from(card.querySelectorAll('.q-correct:checked')).map(input => Number(input.value));
+        const inputType = type === 'multiple' ? 'checkbox' : 'radio';
+        list.innerHTML = existing.slice(0, 4).map((option, index) => `
+            <label class="option-row">
+                <input class="q-correct" type="${inputType}" name="correct-${card.dataset.id}" value="${index}" ${selected.includes(index) ? 'checked' : ''}>
+                <input class="q-option" type="text" value="${escapeHtml(option || '')}" placeholder="Жауап нұсқасы ${index + 1}">
+            </label>
+        `).join('');
+    }
+
+    function collectQuestions() {
+        return Array.from(document.querySelectorAll('.question-card')).map(card => {
+            const type = card.querySelector('.q-type').value;
+            const text = card.querySelector('.q-text').value.trim();
+            const options = type === 'open' ? [] : Array.from(card.querySelectorAll('.q-option')).map(input => input.value.trim());
+            const correctIndices = type === 'open' ? [] : Array.from(card.querySelectorAll('.q-correct:checked')).map(input => Number(input.value));
+            return {
+                question: text,
+                options,
+                correctIndices,
+                correct: correctIndices.length ? correctIndices[0] : null,
+                open: type === 'open'
+            };
+        }).filter(q => q.question && (q.open || (q.options.every(Boolean) && q.correctIndices.length)));
+    }
+
+    async function saveTest() {
+        const title = formValue('title');
+        const topic = formValue('topic') || title;
+        const questions = collectQuestions();
+        if (!title || !topic) return toast('Атауы мен тақырыбын толтырыңыз', false);
+        if (!questions.length) return toast('Кемінде бір толық сұрақ қосыңыз', false);
+
+        try {
+            const payload = {
+                title,
+                topic,
+                difficulty: formValue('difficulty'),
+                questionType: formValue('questionType'),
+                count: questions.length,
+                timerMin: Number(formValue('timer')) || 15,
+                language: formValue('language'),
+                status: formValue('status'),
+                creatorId: user.id || 1,
+                previewQuestions: questions
+            };
+            await request(editId ? `/tests/${editId}` : '/tests/generate-and-save', editId ? 'PUT' : 'POST', payload);
+            toast('Тест сақталды');
+            setTimeout(() => location.href = 'tests.html', 700);
+        } catch (error) {
+            toast(error.message, false);
+        }
+    }
+
+    async function loadExistingTest(id) {
+        const [test, questions] = await Promise.all([
+            request(`/tests/${id}`, 'GET'),
+            request(`/tests/${id}/questions`, 'GET')
+        ]);
+        document.getElementById('title').value = test.title || '';
+        document.getElementById('topic').value = test.topic || '';
+        document.getElementById('count').value = String(test.count || 15);
+        document.getElementById('questionType').value = test.questionType || 'Mixed';
+        document.getElementById('difficulty').value = test.difficulty || 'Medium';
+        document.getElementById('language').value = test.language || 'kk';
+        document.getElementById('timer').value = test.timerMin || 15;
+        document.getElementById('status').value = test.status || 'DRAFT';
+        container.innerHTML = '';
+        questions.forEach(addQuestion);
+        updateCount();
+    }
+
+    function updateCount() {
+        const count = document.querySelectorAll('.question-card').length;
+        previewCount.textContent = `${count} сұрақ`;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика — Eduvibe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container">
+    <section class="panel">
+        <span class="eyebrow">Нәтижелер</span>
+        <h1>Тест статистикасы</h1>
+        <p>Тапсыру саны, аяқталған сессиялар және орташа балл.</p>
+        <div class="stat-grid" id="stat"></div>
+    </section>
+    <section class="panel">
+        <span class="eyebrow">Студент нәтижелері</span>
+        <h2>Жауаптарды тексеру</h2>
+        <div id="rating"></div>
+        <div id="teacherReview" class="review-list"></div>
+    </section>
+</main>
+<script src="app.js"></script>
+<script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+
+    api(`/tests/${id}/statistics`).then(s => {
+        document.getElementById('stat').innerHTML = `
+            <div class="stat-tile"><span>Барлық талпыныс</span><strong>${s.totalAttempts}</strong></div>
+            <div class="stat-tile"><span>Аяқталғаны</span><strong>${s.completedAttempts}</strong></div>
+            <div class="stat-tile"><span>Орташа балл</span><strong>${Math.round(s.averageScore || 0)}</strong></div>
+            <div class="stat-tile"><span>Ең жоғары</span><strong>${s.maxScore || 0}</strong></div>
+            <div class="stat-tile"><span>Ең төмен</span><strong>${s.minScore || 0}</strong></div>
+        `;
+    }).catch(error => toast(error.message, false));
+
+    api(`/tests/${id}/rating`).then(rows => {
+        const rating = document.getElementById('rating');
+        if (!rows.length) {
+            rating.innerHTML = '<p>Бұл тест бойынша аяқталған сессия жоқ.</p>';
+            return;
+        }
+        rating.innerHTML = `
+            <table>
+                <thead><tr><th>Студент</th><th>Балл</th><th>Аяқталған уақыт</th><th></th></tr></thead>
+                <tbody>${rows.map(row => `
+                    <tr>
+                        <td>${row.studentId}</td>
+                        <td>${row.score}</td>
+                        <td>${row.finishedAt || ''}</td>
+                        <td><button class="btn btn-outline btn-sm" onclick="loadReview(${row.sessionId})">Жауаптар</button></td>
+                    </tr>
+                `).join('')}</tbody>
+            </table>
+        `;
+    }).catch(error => toast(error.message, false));
+
+    async function loadReview(sessionId) {
+        const items = await api(`/tests/sessions/${sessionId}/review`);
+        document.getElementById('teacherReview').innerHTML = items.map((item, index) => {
+            const status = item.correct === null || item.correct === undefined
+                ? 'Тексеруді күтеді'
+                : item.correct ? 'Дұрыс' : 'Қате';
+            const options = item.open
+                ? `<p><strong>Жауап:</strong> ${escapeHtml(item.openAnswer || '')}</p>`
+                : `<ul class="review-options">${item.options.map((option, i) => {
+                    const selected = item.selectedIndices.includes(i);
+                    const correct = item.correctIndices.includes(i);
+                    return `<li class="${correct ? 'is-correct' : ''} ${selected ? 'is-selected' : ''}">
+                        ${escapeHtml(option)}${selected ? ' · таңдалды' : ''}${correct ? ' · дұрыс жауап' : ''}
+                    </li>`;
+                }).join('')}</ul>`;
+            const grade = item.open
+                ? `<div class="toolbar">
+                    <button class="btn btn-success btn-sm" onclick="grade(${item.answerId}, true, ${sessionId})">Дұрыс деп белгілеу</button>
+                    <button class="btn btn-danger btn-sm" onclick="grade(${item.answerId}, false, ${sessionId})">Қате деп белгілеу</button>
+                    <button class="btn btn-outline btn-sm" onclick="aiGrade(${item.answerId}, ${sessionId})">AI тексеру</button>
+                </div>`
+                : '';
+            return `<article class="review-card">
+                <span class="badge ${item.correct ? '' : 'badge-secondary'}">${status}</span>
+                <h3>${index + 1}. ${escapeHtml(item.question)}</h3>
+                ${options}
+                ${grade}
+            </article>`;
+        }).join('');
+    }
+
+    async function grade(answerId, correct, sessionId) {
+        await api(`/tests/answers/${answerId}/grade?correct=${correct}`, 'POST');
+        await loadReview(sessionId);
+    }
+
+    async function aiGrade(answerId, sessionId) {
+        await api(`/tests/answers/${answerId}/ai-grade`, 'POST');
+        await loadReview(sessionId);
+    }
+</script>
+</body>
+</html>

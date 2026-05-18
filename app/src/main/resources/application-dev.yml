@@ -1,0 +1,77 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/tms_db
+    username: tms_user
+    password: 123456
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:placeholder}
+            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder}
+            scope:
+              - email
+              - profile
+
+jwt:
+  secret: ${JWT_SECRET:qT6Nf9vY2kL8wR5dX1eS3aC7zG0bM4nO+0dF1gH2iJ3kL4mN5oP6qR7sT8uV9wX0yZ1aB2cD3eF4gH5iJ6kL7}
+  expiration-ms: 900000
+llm:
+  provider: ${LLM_PROVIDER:mock}
+  model: ${LLM_MODEL:mock}
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:sk-your-deepseek-key}
+  model: ${DEEPSEEK_MODEL:deepseek-chat}
+  url: ${DEEPSEEK_URL:https://api.deepseek.com/v1/chat/completions}
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+  url: ${OPENAI_URL:https://api.openai.com/v1/chat/completions}
+ollama:
+  model: ${OLLAMA_MODEL:llama3}
+  url: ${OLLAMA_URL:http://localhost:11434/v1/chat/completions}
+
+resilience4j:
+  retry:
+    instances:
+      llm:
+        max-attempts: 3
+        wait-duration: 500ms
+  circuitbreaker:
+    instances:
+      llm:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    kz.testmanagement: DEBUG
+
+app:
+  security:
+    require-ssl: ${APP_SECURITY_REQUIRE_SSL:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always

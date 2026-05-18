@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Студент панелі</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container">
+    <section class="panel section-title">
+        <span class="eyebrow">Студент панелі</span>
+        <h1 id="welcome">Қош келдіңіз</h1>
+        <p>Жарияланған тесттерді ашып, тапсыру күйін осы жерден көре аласыз.</p>
+    </section>
+    <section class="panel">
+        <h2 data-i18n="inviteCode">Код приглашения</h2>
+        <div class="toolbar">
+            <input id="inviteCode" data-i18n-placeholder="invitePlaceholder" placeholder="Введите код теста">
+            <button class="btn btn-primary" onclick="openByCode()" data-i18n="open">Открыть</button>
+        </div>
+    </section>
+    <section id="testsGrid" class="questions-panel"></section>
+    <section class="panel">
+        <h2 data-i18n="history">История пройденных тестов</h2>
+        <div id="history"></div>
+    </section>
+</main>
+<script src="app.js"></script>
+<script>
+    const inviteFromUrl = new URLSearchParams(location.search).get('code');
+    if (inviteFromUrl) localStorage.setItem('pending_invite_code', inviteFromUrl);
+    const user = currentUser();
+    if (!user) location.href = inviteFromUrl ? `login.html?code=${encodeURIComponent(inviteFromUrl)}` : 'login.html';
+    if (user.role === 'TEACHER') location.href = 'tests.html';
+
+    const studentId = user.id || 1;
+    document.getElementById('welcome').textContent = `Сәлем, ${user.fullName || user.email}`;
+
+    const inviteParam = inviteFromUrl || localStorage.getItem('pending_invite_code');
+    if (inviteParam) {
+        document.getElementById('inviteCode').value = inviteParam;
+        openByCode();
+    }
+
+    Promise.all([
+        request('/tests/all', 'GET'),
+        request(`/tests/sessions/my?studentId=${studentId}`, 'GET').catch(() => [])
+    ])
+        .then(([tests, sessions]) => {
+            const grid = document.getElementById('testsGrid');
+            renderHistory(sessions);
+            const completed = new Set(
+                sessions
+                    .filter(session => session.status === 'COMPLETED')
+                    .map(session => session.testConfig?.id || session.testConfigId)
+                    .filter(Boolean)
+            );
+            const published = tests.filter(test => test.status === 'PUBLISHED' || !test.status);
+
+            if (!published.length) {
+                grid.innerHTML = '<div class="panel"><h2>Әзірге тест жоқ</h2><p>Оқытушы тест жариялаған соң, ол осы жерде көрінеді.</p></div>';
+                return;
+            }
+
+            grid.innerHTML = published.map(test => {
+                const done = completed.has(test.id);
+                return `
+                    <article class="card ${done ? 'test-card-done' : ''}">
+                        <span class="badge ${done ? '' : 'badge-secondary'}">${done ? 'Тапсырылды' : test.difficulty}</span>
+                        <h2>${test.title}</h2>
+                        <p>${test.topic || ''}</p>
+                        <p>${test.count} сұрақ · ${test.timerMin || 0} минут · ${test.language}</p>
+                        <div class="test-actions">
+                            ${done ? '<span class="done-mark">Бұл тест тапсырылды</span>' : '<span></span>'}
+                            <button class="btn ${done ? 'btn-outline' : 'btn-primary'}" onclick="startTest(${test.id})">
+                                ${done ? 'Қайта тапсыру' : 'Тапсыру'}
+                            </button>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        })
+        .catch(error => toast(error.message, false));
+
+    document.addEventListener('languagechange', () => {
+        request(`/tests/sessions/my?studentId=${studentId}`, 'GET')
+            .then(renderHistory)
+            .catch(() => {});
+    });
+
+    function startTest(id) {
+        localStorage.setItem('active_test_id', id);
+        location.href = 'session.html';
+    }
+
+    async function openByCode() {
+        const code = document.getElementById('inviteCode').value.trim();
+        if (!code) return toast('Введите код приглашения', false);
+        const test = await request(`/tests/code/${encodeURIComponent(code)}`, 'GET');
+        localStorage.removeItem('pending_invite_code');
+        startTest(test.id);
+    }
+
+    function renderHistory(sessions) {
+        const done = sessions.filter(session => session.status === 'COMPLETED');
+        const history = document.getElementById('history');
+        if (!done.length) {
+            history.innerHTML = `<p>${t('noHistory')}</p>`;
+            return;
+        }
+        history.innerHTML = `
+            <table>
+                <thead><tr><th>${t('tests')}</th><th>${t('score')}</th><th>${t('finished')}</th><th></th></tr></thead>
+                <tbody>${done.map(session => `
+                    <tr>
+                        <td>${escapeHtml(session.testConfig?.title || `#${session.testConfigId}`)}</td>
+                        <td>${session.score || 0}</td>
+                        <td>${session.finishedAt || ''}</td>
+                        <td><a class="btn btn-outline btn-sm" href="session.html?review=${session.id}">${t('review')}</a></td>
+                    </tr>
+                `).join('')}</tbody>
+            </table>
+        `;
+    }
+</script>
+</body>
+</html>

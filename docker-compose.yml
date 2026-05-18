@@ -1,0 +1,146 @@
+
+
+services:
+  app:
+    build: .
+    container_name: tms-app
+    depends_on:
+      - postgres
+      - redis
+      - mailpit
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      APP_SECURITY_REQUIRE_SSL: ${APP_SECURITY_REQUIRE_SSL:-false}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_URL: ${DEEPSEEK_URL:-https://api.deepseek.com/v1/chat/completions}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434/v1/chat/completions}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3}
+    secrets:
+      - jwt_secret
+      - db_password
+      - deepseek_api_key
+      - openai_api_key
+    ports:
+      - "${APP_PORT:-8081}:8080"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres
+    environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+        POSTGRES_DB: ${POSTGRES_DB}
+    secrets:
+      - db_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: tms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tms-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tms-prometheus
+    depends_on:
+      - app
+      - postgres-exporter
+      - redis-exporter
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: tms-postgres-exporter
+    depends_on:
+      - postgres
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    ports:
+      - "9187:9187"
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: tms-redis-exporter
+    depends_on:
+      - redis
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tms-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: tms-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: tms-nginx
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  ollama-data:
+  grafana-data:
+
+secrets:
+  jwt_secret:
+    file: ./.secrets/jwt_secret.txt.example
+  db_password:
+    file: ./.secrets/db_password.txt.example
+  deepseek_api_key:
+    file: ./.secrets/deepseek_api_key.txt.example
+  openai_api_key:
+    file: ./.secrets/openai_api_key.txt.example

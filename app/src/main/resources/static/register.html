@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тіркелу — Eduvibe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container auth-wrap">
+    <section class="card auth-card">
+        <span class="eyebrow">Жаңа аккаунт</span>
+        <h1 data-i18n="registerTitle">Регистрация</h1>
+        <p>Рөліңізді таңдаңыз: студент тест тапсырады, оқытушы тест жасайды.</p>
+        <form id="f">
+            <label><span data-i18n="fullName">ФИО</span>
+                <input type="text" id="name" required>
+            </label>
+            <label>Email
+                <input type="email" id="email" required>
+            </label>
+            <label><span data-i18n="password">Пароль</span>
+                <input type="password" id="password" minlength="6" required>
+            </label>
+            <label><span data-i18n="role">Роль</span>
+                <select id="role">
+                    <option value="STUDENT" data-i18n="student">Студент</option>
+                    <option value="TEACHER" data-i18n="teacher">Учитель</option>
+                </select>
+            </label>
+            <button type="submit" class="btn btn-primary" style="width:100%" data-i18n="openAccount">Создать аккаунт</button>
+        </form>
+    </section>
+</main>
+<script src="app.js"></script>
+<script>
+    document.getElementById('f').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const data = await api('/auth/register', 'POST', {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            });
+            localStorage.setItem('jwt', data.token);
+            localStorage.setItem('refreshToken', data.refreshToken);
+            localStorage.setItem('user', JSON.stringify({ id: data.id, email: data.email, role: data.role, fullName: data.fullName }));
+            toast('Аккаунт құрылды');
+            const pendingInvite = localStorage.getItem('pending_invite_code');
+            location.href = pendingInvite && data.role === 'STUDENT'
+                ? `dashboard.html?code=${encodeURIComponent(pendingInvite)}`
+                : 'profile.html';
+        } catch (err) {
+            toast(err.message, false);
+        }
+    };
+</script>
+</body>
+</html>

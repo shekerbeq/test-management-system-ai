@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tms-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tms-app
+  template:
+    metadata:
+      labels:
+        app: tms-app
+    spec:
+      containers:
+        - name: tms-app
+          image: test-management-system-ai:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: tms-secrets
+            - configMapRef:
+                name: tms-config

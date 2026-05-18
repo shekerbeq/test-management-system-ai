@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth2</title>
+</head>
+<body>
+<script>
+    const params = new URLSearchParams(location.search);
+    localStorage.setItem('jwt', params.get('token'));
+    localStorage.setItem('refreshToken', params.get('refreshToken'));
+    localStorage.setItem('user', JSON.stringify({
+        id: Number(params.get('id')),
+        email: params.get('email'),
+        role: params.get('role'),
+        fullName: params.get('fullName')
+    }));
+    location.href = params.get('role') === 'TEACHER' ? 'tests.html' : 'dashboard.html';
+</script>
+</body>
+</html>

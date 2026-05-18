@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест тапсыру</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container" style="max-width: 820px;">
+    <section class="panel" id="testShell">
+        <div class="section-title">
+            <span class="eyebrow" id="progressLabel">Сұрақ</span>
+            <h1 id="qTitle" class="test-question-title">Жүктелуде...</h1>
+        </div>
+        <div id="qOptions" class="options-list"></div>
+        <button id="nextBtn" class="btn btn-primary" style="width:100%;margin-top:20px">Жауапты жіберу</button>
+    </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+    const testId = localStorage.getItem('active_test_id');
+    const reviewSessionId = new URLSearchParams(location.search).get('review');
+    const user = currentUser();
+    let sessionId = null;
+    let questions = [];
+    let currentIdx = 0;
+
+    if ((!testId && !reviewSessionId) || !user) location.href = 'dashboard.html';
+
+    async function init() {
+        try {
+            if (reviewSessionId) {
+                await showReviewOnly(reviewSessionId);
+                return;
+            }
+            const session = await request(`/tests/${testId}/start?studentId=${user.id || 1}`, 'POST');
+            sessionId = session.id;
+            questions = await request(`/tests/${testId}/questions`, 'GET');
+            if (!questions.length) throw new Error('Бұл тестте сұрақ жоқ');
+            renderQuestion();
+        } catch (error) {
+            document.getElementById('testShell').innerHTML = `<h1>Тест ашылмады</h1><p>${error.message}</p><a class="btn btn-primary" href="dashboard.html">Артқа</a>`;
+        }
+    }
+
+    async function showReviewOnly(id) {
+        const result = await request(`/tests/sessions/${id}`, 'GET');
+        const review = await request(`/tests/sessions/${id}/review`, 'GET');
+        document.getElementById('testShell').innerHTML = `
+            <span class="eyebrow">Разбор</span>
+            <h1>${escapeHtml(result.testConfig?.title || 'Пройденный тест')}</h1>
+            <p>Результат: <strong>${result.score || 0}</strong></p>
+            <div class="review-list">${renderReview(review)}</div>
+            <a href="dashboard.html" class="btn btn-primary">Назад</a>
+        `;
+    }
+
+    function renderQuestion() {
+        const question = questions[currentIdx];
+        document.getElementById('progressLabel').textContent = `${currentIdx + 1} / ${questions.length}`;
+        document.getElementById('qTitle').textContent = question.question;
+
+        const options = document.getElementById('qOptions');
+        if (question.open) {
+            options.innerHTML = `<textarea id="openAnswer" rows="7" placeholder="Жауабыңызды жазыңыз"></textarea>`;
+            return;
+        }
+
+        const type = question.correctIndices && question.correctIndices.length > 1 ? 'checkbox' : 'radio';
+        options.innerHTML = question.options.map((option, index) => `
+            <label class="option-row">
+                <input type="${type}" name="answer" value="${index}">
+                <span>${option}</span>
+            </label>
+        `).join('');
+    }
+
+    document.getElementById('nextBtn').addEventListener('click', async () => {
+        const question = questions[currentIdx];
+        const openAnswer = document.getElementById('openAnswer');
+        const checked = Array.from(document.querySelectorAll('input[name="answer"]:checked'));
+
+        if (question.open && !openAnswer.value.trim()) return toast('Жауап енгізіңіз', false);
+        if (!question.open && !checked.length) return toast('Жауап таңдаңыз', false);
+
+        const selectedIndices = checked.map(input => Number(input.value));
+        const params = new URLSearchParams({
+            questionId: question.id,
+            openAnswer: question.open ? openAnswer.value.trim() : ''
+        });
+        if (selectedIndices.length) {
+            params.set('selectedIndex', selectedIndices[0]);
+            selectedIndices.forEach(index => params.append('selectedIndices', index));
+        }
+        await request(`/tests/sessions/${sessionId}/answers?${params}`, 'POST');
+
+        currentIdx++;
+        if (currentIdx >= questions.length) return finishTest();
+        renderQuestion();
+    });
+
+    async function finishTest() {
+        await request(`/tests/sessions/${sessionId}/finish`, 'POST');
+        const result = await request(`/tests/sessions/${sessionId}`, 'GET');
+        const review = await request(`/tests/sessions/${sessionId}/review`, 'GET');
+        document.getElementById('testShell').innerHTML = `
+            <span class="eyebrow">Нәтиже</span>
+            <h1>Тест аяқталды</h1>
+            <p>Жабық сұрақтар бойынша нәтиже: <strong>${result.score || 0}</strong> / ${questions.filter(q => !q.open).length}</p>
+            <div class="review-list">${renderReview(review)}</div>
+            <a href="dashboard.html" class="btn btn-primary">Панельге қайту</a>
+        `;
+    }
+
+    function renderReview(items) {
+        return items.map((item, index) => {
+            const status = item.correct === null || item.correct === undefined
+                ? 'Тексеруді күтеді'
+                : item.correct ? 'Дұрыс' : 'Қате';
+            const options = item.open
+                ? `<p><strong>Жауап:</strong> ${escapeHtml(item.openAnswer || '')}</p>`
+                : `<ul class="review-options">${item.options.map((option, i) => {
+                    const selected = item.selectedIndices.includes(i);
+                    const correct = item.correctIndices.includes(i);
+                    return `<li class="${correct ? 'is-correct' : ''} ${selected ? 'is-selected' : ''}">
+                        ${escapeHtml(option)}${selected ? ' · таңдалды' : ''}${correct ? ' · дұрыс жауап' : ''}
+                    </li>`;
+                }).join('')}</ul>`;
+            return `<article class="review-card">
+                <span class="badge ${item.correct ? '' : 'badge-secondary'}">${status}</span>
+                <h3>${index + 1}. ${escapeHtml(item.question)}</h3>
+                ${options}
+            </article>`;
+        }).join('');
+    }
+
+    init();
+</script>
+</body>
+</html>

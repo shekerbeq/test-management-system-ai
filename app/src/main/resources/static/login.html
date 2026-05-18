@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кіру — Eduvibe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container auth-wrap">
+    <section class="card auth-card">
+        <span class="eyebrow" data-i18n="welcomeBack">Добро пожаловать</span>
+        <h1 data-i18n="loginTitle">Вход в систему</h1>
+        <p data-i18n="loginText">Войдите в аккаунт, чтобы создавать или проходить тесты.</p>
+        <form id="f">
+            <label><span data-i18n="loginField">Логин или email</span>
+                <input type="text" id="email" required>
+            </label>
+            <label><span data-i18n="password">Пароль</span>
+                <input type="password" id="password" required>
+            </label>
+            <button type="submit" class="btn btn-primary" style="width:100%" data-i18n="loginButton">Войти</button>
+        </form>
+        <a href="/oauth2/authorization/google" class="btn btn-outline" style="width:100%;margin-top:12px">Google арқылы кіру</a>
+    </section>
+</main>
+<script src="app.js"></script>
+<script>
+    document.getElementById('f').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const d = await api('/auth/login', 'POST', {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            });
+            localStorage.setItem('jwt', d.token);
+            localStorage.setItem('refreshToken', d.refreshToken);
+            localStorage.setItem('user', JSON.stringify({ id: d.id, email: d.email, role: d.role, fullName: d.fullName }));
+            toast('Сәтті кірдіңіз');
+            const pendingInvite = localStorage.getItem('pending_invite_code');
+            location.href = pendingInvite && d.role === 'STUDENT'
+                ? `dashboard.html?code=${encodeURIComponent(pendingInvite)}`
+                : d.role === 'TEACHER'
+                ? 'tests.html'
+                : d.role === 'ADMIN'
+                    ? 'admin-users.html'
+                    : 'dashboard.html';
+        } catch (err) {
+            toast(err.message || 'Email немесе құпия сөз дұрыс емес', false);
+        }
+    };
+</script>
+</body>
+</html>

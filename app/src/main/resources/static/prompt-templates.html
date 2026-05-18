@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt шаблондары</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="global-header"></header>
+<main class="container">
+    <section class="panel section-title">
+        <span class="eyebrow">AI</span>
+        <h1>Prompt шаблондары</h1>
+        <p>AI генерациясына қолданылатын prompt үлгілерін сақтау және қайта пайдалану.</p>
+    </section>
+    <section class="card">
+        <label>Атауы
+            <input id="name" placeholder="Java quiz prompt">
+        </label>
+        <label>Template
+            <textarea id="template" rows="7" placeholder="Topic: {{topic}}, Difficulty: {{difficulty}}"></textarea>
+        </label>
+        <button class="btn btn-primary" onclick="saveTemplate()">Сақтау</button>
+    </section>
+    <section id="templates" class="questions-panel"></section>
+</main>
+<script src="app.js"></script>
+<script>
+    const user = currentUser();
+    if (!user || !['TEACHER', 'ADMIN'].includes(user.role)) location.href = 'error.html';
+
+    async function loadTemplates() {
+        const items = await request('/prompt-templates', 'GET');
+        document.getElementById('templates').innerHTML = items.map(item => `
+            <article class="card">
+                <h2>${item.name}</h2>
+                <p>${item.systemTemplate ? 'System' : 'Private'}</p>
+                <pre>${item.template}</pre>
+                <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${item.id})">Жою</button>
+            </article>
+        `).join('');
+    }
+
+    async function saveTemplate() {
+        await request('/prompt-templates', 'POST', {
+            name: document.getElementById('name').value,
+            template: document.getElementById('template').value,
+            systemTemplate: user.role === 'ADMIN'
+        });
+        toast('Prompt сақталды');
+        loadTemplates();
+    }
+
+    async function deleteTemplate(id) {
+        await request(`/prompt-templates/${id}`, 'DELETE');
+        loadTemplates();
+    }
+
+    loadTemplates().catch(error => toast(error.message, false));
+</script>
+</body>
+</html>
